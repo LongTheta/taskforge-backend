@@ -21,13 +21,13 @@ async def lifespan(app: FastAPI):
     settings = get_settings()
     settings.validate_production()
     version = settings.app_version or APP_VERSION
+    sha = settings.git_sha or "unknown"
     logger.info(
-        "TaskForge starting",
-        extra={
-            "version": version,
-            "env": settings.app_env,
-            "git_sha": settings.git_sha or "(not set)",
-        },
+        "Starting TaskForge Backend | env=%s version=%s sha=%s",
+        settings.app_env,
+        version,
+        sha,
+        extra={"version": version, "env": settings.app_env, "git_sha": sha},
     )
     yield
 

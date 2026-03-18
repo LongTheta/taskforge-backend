@@ -12,6 +12,10 @@ images:
     newTag: "test"  # CI updates to commit SHA
 
 patches:
+  - path: patch.yaml
+    target:
+      kind: Deployment
+      name: taskforge-backend
   - target:
       kind: ConfigMap
       name: taskforge-backend-config

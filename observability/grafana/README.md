@@ -7,6 +7,7 @@ Starter dashboard for request rate, latency, error rate, in-progress requests, a
 **Import:** Grafana → Dashboards → Import → Upload `taskforge-overview.json`
 
 **Panels:**
+- Health status — `up{job="taskforge-backend"}` (scrape target up/down)
 - Request rate (req/s) — `rate(http_requests_total[5m])`
 - Latency (p50, p99) — `histogram_quantile` on `http_request_duration_seconds_bucket`
 - Error rate (5xx) — ratio of 5xx to total

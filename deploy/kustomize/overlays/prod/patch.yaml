@@ -1,0 +1,7 @@
+# Add environment label to pod template and selector
+- op: add
+  path: /spec/selector/matchLabels/environment
+  value: "prod"
+- op: add
+  path: /spec/template/metadata/labels/environment
+  value: "prod"

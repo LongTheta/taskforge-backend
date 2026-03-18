@@ -9,8 +9,8 @@ deploy/
 ├── kustomize/
 │   ├── base/           # Deployment, Service, ConfigMap, Secret
 │   └── overlays/
-│       ├── dev/        # taskforge-dev namespace, DEBUG logs
-│       └── prod/       # taskforge-prod namespace, 2 replicas
+│       ├── dev/        # kustomization.yaml, patch.yaml (environment label)
+│       └── prod/       # kustomization.yaml, patch.yaml (environment label)
 ├── argocd/
 │   └── application.yaml   # Example ArgoCD Application
 ├── examples/

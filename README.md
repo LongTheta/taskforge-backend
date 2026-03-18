@@ -55,6 +55,14 @@ Client → FastAPI → Middleware (logging, metrics, request ID)
                 → Routes → Services → SQLAlchemy → PostgreSQL
 ```
 
+**App:** FastAPI with JWT auth, task/note CRUD, health probes, Prometheus metrics, structured JSON logging.
+
+**CI/CD:** GitHub Actions — lint, test, security (Bandit, pip-audit), SBOM (CycloneDX), Docker build with SHA tag, build provenance attestation, manual promotion gate.
+
+**GitOps:** Kustomize base + overlays (dev/prod); ArgoCD syncs on commit. Immutable image tags.
+
+**Observability:** `/metrics` (Prometheus), `/health`/`/info` (metadata), JSON logs (Loki-ready). Grafana dashboard for request rate, latency, error rate, health status.
+
 - **FastAPI app** — `app/main.py` wires routes, middleware, and exception handling.
 - **API routes** — Thin handlers in `app/api/routes/`; auth, users, tasks, notes, health.
 - **Service layer** — Business logic in `app/services/`; reusable across routes.

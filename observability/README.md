@@ -13,6 +13,17 @@ Starter assets for Prometheus, Grafana, and Loki integration.
 
 **Scrape:** `/metrics` on port 8000. See `prometheus-scrape.example.yml` for config.
 
+## Metrics → Dashboard Panels
+
+| Metric | Dashboard panel |
+|--------|-----------------|
+| `up{job="taskforge-backend"}` | Health status (scrape target up/down) |
+| `rate(http_requests_total[5m])` | Request rate (req/s) |
+| `http_request_duration_seconds_bucket` | Latency (p50, p99) |
+| `http_requests_total` (5xx / total) | Error rate |
+| `http_requests_in_progress` | Requests in progress |
+| `taskforge_build_info` | Build info (version, env, git_sha) |
+
 ## Grafana Dashboard
 
 **Import:** `observability/grafana/taskforge-overview.json`

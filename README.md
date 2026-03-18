@@ -92,6 +92,14 @@ make format    # Ruff fix and format
 make security  # Bandit and pip-audit
 ```
 
+**Windows (PowerShell):** `make` is not installed by default. Use:
+
+```powershell
+.\scripts\format.ps1    # format
+python -m ruff check app tests; python -m ruff format --check app tests   # lint
+python -m ruff check app tests --fix; python -m ruff format app tests    # format
+```
+
 ---
 
 ## Docker

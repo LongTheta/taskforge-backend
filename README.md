@@ -1,5 +1,6 @@
 # TaskForge Backend
 
+[![CI](https://github.com/LongTheta/taskforge-backend/actions/workflows/ci.yml/badge.svg)](https://github.com/LongTheta/taskforge-backend/actions/workflows/ci.yml)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.109+-green.svg)](https://fastapi.tiangolo.com/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
@@ -223,15 +224,35 @@ Tests use SQLite. `conftest.py` sets `DATABASE_URL`, `SECRET_KEY`, `APP_ENV`.
 
 ## 11. GitOps Readiness
 
-- **Kustomize:** `deploy/kustomize/base` + overlays `dev`, `prod`. Apply with `kubectl apply -k deploy/kustomize/overlays/dev`.
-- **ArgoCD:** Example Application in `deploy/argocd/application.yaml` or `deploy/examples/argocd-application.yaml`. Points at overlay path; ArgoCD syncs on commit.
-- **Flow:** Build → tag with SHA → publish to registry → update overlay → ArgoCD sync.
+### Kustomize Structure
 
-**Image tagging strategy:** CI builds with commit SHA (e.g. `abc1234`). Use immutable tags only; avoid `latest`. Update overlay `images[].newTag` in `kustomization.yaml` when promoting.
+```
+deploy/kustomize/
+├── base/           # Deployment, Service, ConfigMap, Secret
+└── overlays/
+    ├── dev/        # kustomization.yaml, patch.yaml (environment=dev)
+    └── prod/       # kustomization.yaml, patch.yaml (environment=prod)
+```
 
-**Environment promotion strategy:** Same image tag flows dev → stage → prod. Overlays differ by namespace, replicas, and LOG_LEVEL. Configure `production` environment in GitHub for manual approval before prod deploy.
+Apply: `kubectl apply -k deploy/kustomize/overlays/dev` (or `prod`).
 
-**Deployment metadata:** `APP_ENV`, `APP_VERSION`, `GIT_SHA`, `IMAGE_TAG` in ConfigMap/env; exposed in `/health`, `/info`, `taskforge_build_info` metric.
+### ArgoCD Usage Pattern
+
+1. Point ArgoCD Application at `deploy/kustomize/overlays/dev` (or `prod`).
+2. Use `deploy/argocd/application.yaml` or `deploy/examples/argocd-application.yaml` as template.
+3. ArgoCD syncs on commit; no cluster-specific config required.
+
+### Image Tagging Strategy
+
+CI builds with commit SHA (e.g. `abc1234`). Use immutable tags only; avoid `latest`. Update overlay `images[].newTag` in `kustomization.yaml` when promoting. For releases, use semantic version (e.g. `0.1.0`).
+
+### Environment Promotion Model
+
+Same image tag flows dev → stage → prod. Overlays differ by namespace, replicas, and LOG_LEVEL. Configure `production` environment in GitHub for manual approval before prod deploy.
+
+### Deployment Metadata
+
+`APP_ENV`, `APP_VERSION`, `GIT_SHA`, `IMAGE_TAG` in ConfigMap/env; exposed in `/health`, `/info`, `taskforge_build_info` metric.
 
 ---
 
@@ -280,7 +301,23 @@ GitHub Actions runs on push/PR to `main`:
 
 ---
 
-## 14. Roadmap
+## 14. Releases and Versioning
+
+**Current version:** `0.1.0` (see `pyproject.toml`, `app/core/config.py`).
+
+**Semantic versioning:** We use [SemVer](https://semver.org/) — `MAJOR.MINOR.PATCH`. Breaking API changes bump MAJOR; new features bump MINOR; fixes bump PATCH.
+
+**Creating a release:**
+1. Update version in `pyproject.toml` and `app/core/config.py` (APP_VERSION).
+2. Create a git tag: `git tag v0.1.0`
+3. Push tag: `git push origin v0.1.0`
+4. Create a GitHub Release from the tag with release notes.
+
+**Image tagging:** For releases, use the version (e.g. `taskforge-backend:0.1.0`). For CI builds, use commit SHA (e.g. `taskforge-backend:abc1234`).
+
+---
+
+## 15. Roadmap
 
 **Planned next:**
 
@@ -309,7 +346,7 @@ GitHub Actions runs on push/PR to `main`:
 | ORM | SQLAlchemy 2.x |
 | Migrations | Alembic |
 | Database | PostgreSQL |
-| Auth | JWT (python-jose), bcrypt |
+| Auth | JWT (PyJWT), bcrypt |
 | Validation | Pydantic v2 |
 | Metrics | prometheus_client |
 | Testing | pytest, FastAPI TestClient |

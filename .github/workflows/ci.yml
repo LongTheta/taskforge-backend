@@ -49,8 +49,7 @@ jobs:
           python-version: ${{ env.PYTHON_VERSION }}
       - run: pip install -e ".[dev]"
       - run: bandit -r app -c pyproject.toml
-      - run: pip-audit --skip-editable --ignore-vuln CVE-2024-23342
-        # skip-editable: local pkg; CVE-2024-23342: ecdsa, we use HS256
+      - run: pip-audit --skip-editable
 
   sbom:
     name: SBOM

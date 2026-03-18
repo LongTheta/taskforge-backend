@@ -127,6 +127,7 @@ jobs:
         id: meta
         run: |
           echo "short_sha=$(echo ${{ github.sha }} | cut -c1-7)" >> $GITHUB_OUTPUT
+          echo "repo_lower=$(echo ${{ github.repository }} | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
       - name: Build and push
         id: push
         uses: docker/build-push-action@v6
@@ -146,7 +147,7 @@ jobs:
         env:
           COSIGN_EXPERIMENTAL: "true"
         run: |
-          cosign sign ghcr.io/${{ github.repository }}@${{ steps.push.outputs.digest }}
+          cosign sign ghcr.io/${{ steps.meta.outputs.repo_lower }}@${{ steps.push.outputs.digest }}
 
   promote:
     name: Promote (manual gate)
@@ -162,5 +163,5 @@ jobs:
           echo "Promotion gate passed. Image pushed and signed."
           echo "GIT_SHA=${{ github.sha }}"
           echo "IMAGE_TAG=$(echo ${{ github.sha }} | cut -c1-7)"
-          echo "IMAGE=ghcr.io/${{ github.repository }}:$(echo ${{ github.sha }} | cut -c1-7)"
+          echo "IMAGE=ghcr.io/$(echo ${{ github.repository }} | tr '[:upper:]' '[:lower:]'):$(echo ${{ github.sha }} | cut -c1-7)"
           echo "Configure repo Environment 'production' with required reviewers for approval."

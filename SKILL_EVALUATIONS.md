@@ -1,7 +1,8 @@
 # Skill Evaluations: taskforge-backend
 
 All six Cursor skills run against this repository.  
-**Re-run:** 2025-03-18. **Artifacts:** `.github/workflows/ci.yml`, `deploy/`, `app/`, `Dockerfile`, `pyproject.toml`.
+**Re-run:** 2025-03-18. **Artifacts:** `.github/workflows/ci.yml`, `deploy/`, `app/`, `Dockerfile`, `pyproject.toml`.  
+**Post-eval:** Bandit B106/B310 remediated (2025-03-18); Bandit passes with 0 issues.
 
 ---
 
@@ -30,7 +31,7 @@ TaskForge Backend is a FastAPI REST API for task/notes management with JWT auth,
 | Encryption in transit and at rest | 4 | TLS assumed; DB at rest deployment-dependent |
 | API / network exposure | 5 | Rate limiting; auth; NetworkPolicy micro-segmentation |
 | Supply chain security | 5 | SBOM, provenance, **cosign keyless signing** |
-| Dependency/image scanning | 4 | Bandit, pip-audit in CI |
+| Dependency/image scanning | 5 | Bandit, pip-audit in CI; Bandit passes 0 issues |
 | Configuration management | 5 | Env-driven; Kustomize; prod uses ESO |
 | Policy enforcement | 5 | Manual promotion; prod manual sync |
 | Secure-by-default | 5 | Prod startup validation; no secrets in prod Git |
@@ -51,6 +52,8 @@ TaskForge Backend is a FastAPI REST API for task/notes management with JWT auth,
 
 - Unknown: DB encryption at rest; TLS termination depends on deployment
 - N8N webhook: optional; no auth on webhook (fire-and-forget)
+
+**Remediated (post-eval):** Bandit B106 (auth.py empty `access_token` — nosec; not a password), B310 (notify.py `urlopen` — scheme validation for https/http only).
 
 ## 6. Compliance / Control Considerations
 
@@ -86,6 +89,15 @@ TaskForge Backend is a FastAPI REST API for task/notes management with JWT auth,
 - Run penetration test on auth and MFA endpoints
 - Validate TLS and DB encryption in deployment
 - Add webhook secret validation if N8N URL is sensitive
+
+## 11. Post-evaluation Remediation
+
+| Finding | Fix | Status |
+|---------|-----|--------|
+| Bandit B106 (auth.py) | `access_token=""` flagged as password; added `# nosec B106` — empty placeholder when MFA required | ✅ Done |
+| Bandit B310 (notify.py) | `urlopen` allows file:/custom schemes; added scheme validation (https/http only) + `# nosec B310` | ✅ Done |
+
+**Bandit:** 0 issues (Low/Medium/High). CI security job passes.
 
 ---
 

@@ -6,9 +6,12 @@ import threading
 from datetime import UTC, datetime
 from typing import Any
 from urllib.error import HTTPError, URLError
+from urllib.parse import urlparse
 from urllib.request import Request, urlopen
 
 from app.core.config import get_settings
+
+ALLOWED_WEBHOOK_SCHEMES = ("https", "http")
 
 logger = logging.getLogger(__name__)
 
@@ -54,13 +57,16 @@ def notify_webhook(
 
     def _send() -> None:
         try:
+            if urlparse(url).scheme not in ALLOWED_WEBHOOK_SCHEMES:
+                logger.warning("Notification webhook URL scheme not allowed: %s", url)
+                return
             req = Request(
                 url,
                 data=json.dumps(payload).encode(),
                 headers={"Content-Type": "application/json"},
                 method="POST",
             )
-            urlopen(req, timeout=10)
+            urlopen(req, timeout=10)  # nosec B310 -- scheme validated above
         except (URLError, HTTPError, OSError) as e:
             logger.warning("Notification webhook failed: %s", e)
 

@@ -115,7 +115,7 @@ def login(request: Request, data: UserLogin, db: DbSession):
         )
         challenge_token = create_mfa_challenge_token(user.id)
         return Token(
-            access_token="",
+            access_token="",  # nosec B106 -- empty placeholder when MFA required, not a password
             refresh_token=None,
             requires_mfa=True,
             mfa_challenge_token=challenge_token,

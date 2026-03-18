@@ -59,6 +59,20 @@ CurrentUser = Annotated[User, Depends(get_current_user)]
 DbSession = Annotated[Session, Depends(get_db)]
 
 
+def require_role(*allowed_roles: str):
+    """Dependency that requires the current user to have one of the allowed roles."""
+
+    def _check(current_user: CurrentUser) -> User:
+        if current_user.role not in allowed_roles:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Requires one of roles: {', '.join(allowed_roles)}",
+            )
+        return current_user
+
+    return Depends(_check)
+
+
 def or_404(resource: T | None, name: str = "Resource") -> T:
     """Raise 404 if resource is None. Use for user-scoped get-by-id patterns."""
     if resource is None:

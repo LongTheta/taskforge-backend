@@ -26,6 +26,9 @@ dependencies = [
     "PyJWT>=2.8.0",
     "greenlet>=3.0.0",
     "python-multipart>=0.0.6",
+    "slowapi>=0.1.9",
+    "pyotp>=2.9.0",
+    "cryptography>=42.0.0",
 ]
 
 [project.optional-dependencies]

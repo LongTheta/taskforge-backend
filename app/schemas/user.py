@@ -16,6 +16,7 @@ class UserResponse(UserBase):
 
     id: int
     is_active: bool
+    role: str = "user"
     created_at: datetime
     updated_at: datetime
 

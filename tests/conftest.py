@@ -11,6 +11,7 @@ from sqlalchemy.orm import sessionmaker
 os.environ["DATABASE_URL"] = "sqlite:///./test.db"
 os.environ["SECRET_KEY"] = "test-secret-key-for-testing-only"
 os.environ["APP_ENV"] = "test"
+os.environ["RATE_LIMIT_ENABLED"] = "false"
 
 from app.core.database import get_db
 from app.db.base import Base

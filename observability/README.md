@@ -59,6 +59,38 @@ Structured JSON logs include fields suitable for Loki:
 {job="taskforge-backend"} | json | env="production" | status_code>=500
 ```
 
+## Audit Logs → Loki / SIEM
+
+Audit events have `event_type: "audit"`. Route these to Loki or SIEM for security monitoring.
+
+| Audit Field | Purpose |
+|-------------|---------|
+| `event_type` | Always `audit` — filter for security events |
+| `action` | e.g. `login_success`, `login_failure`, `task_created` |
+| `user_id` | Actor (when authenticated) |
+| `resource_type`, `resource_id` | Affected resource |
+| `request_id` | Correlate with request logs |
+| `success` | Boolean outcome |
+
+**LogQL for audit events:**
+```
+{job="taskforge-backend"} | json | event_type="audit"
+{job="taskforge-backend"} | json | event_type="audit" | action="login_failure"
+{job="taskforge-backend"} | json | event_type="audit" | success=false
+```
+
+**SIEM integration:** Configure Promtail/Grafana Agent to send logs to Loki. Use `event_type=audit` as a label or filter. For Splunk/Elastic, parse JSON and index `event_type`, `action`, `user_id`.
+
+## Alerting
+
+See `prometheus-alerts.example.yml` for example alert rules:
+
+- **TaskForgeDown** — Service unreachable
+- **TaskForgeHighErrorRate** — 5xx rate > 5%
+- **TaskForgeHighLatency** — p99 > 2s
+
+Add to Prometheus `rule_files` or Prometheus Operator Rule.
+
 ## Health and Info
 
 - `/health` — Liveness; returns version, env, git_sha, image_tag

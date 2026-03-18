@@ -30,6 +30,12 @@ class Settings(BaseSettings):
     secret_key: str = "change-me-in-production"  # Production: openssl rand -hex 32
     jwt_algorithm: str = "HS256"
     access_token_expire_minutes: int = 30
+    refresh_token_expire_days: int = 7
+    rate_limit_login_per_minute: int = 5
+    rate_limit_api_per_minute: int = 100
+    rate_limit_enabled: bool = True
+    mfa_required_for_admin: bool = False  # Future: when True, admin login requires TOTP
+    notification_webhook_url: str | None = None  # N8N/webhook URL for email/SMS notifications
     debug: bool = False
     log_level: str = "INFO"
     git_sha: str | None = None

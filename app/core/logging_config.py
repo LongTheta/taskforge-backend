@@ -66,6 +66,19 @@ class JsonFormatter(logging.Formatter):
             log_data["status_code"] = record.status_code
         if hasattr(record, "duration_ms"):
             log_data["duration_ms"] = record.duration_ms
+        # Audit event fields
+        if hasattr(record, "event_type"):
+            log_data["event_type"] = record.event_type
+        if hasattr(record, "action"):
+            log_data["action"] = record.action
+        if hasattr(record, "user_id"):
+            log_data["user_id"] = record.user_id
+        if hasattr(record, "resource_type"):
+            log_data["resource_type"] = record.resource_type
+        if hasattr(record, "resource_id"):
+            log_data["resource_id"] = record.resource_id
+        if hasattr(record, "success"):
+            log_data["success"] = record.success
         if record.exc_info:
             log_data["exception"] = self.formatException(record.exc_info)
         return json.dumps(log_data)

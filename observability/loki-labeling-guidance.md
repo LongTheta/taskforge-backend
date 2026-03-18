@@ -19,6 +19,11 @@ Structured JSON logs from TaskForge Backend include fields suitable for Loki ing
 | `version` | string | App version |
 | `env` | string | development, production, test |
 | `exception` | string | Stack trace (errors only) |
+| `event_type` | string | `audit` for audit events |
+| `action` | string | Audit action (e.g. `login_success`, `task_created`) |
+| `user_id` | number | Audit actor |
+| `resource_type`, `resource_id` | string | Audit target |
+| `success` | boolean | Audit outcome |
 
 ## Recommended Loki Labels
 

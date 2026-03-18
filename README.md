@@ -43,9 +43,15 @@ A production-style FastAPI service with JWT auth, designed as a reference for pl
 | Manual promotion gate (placeholder) | ✅ |
 | Build provenance attestation (SLSA-style) | ✅ |
 | Kustomize base + overlays (dev/prod) | ✅ |
-| ArgoCD Application example | ✅ |
+| ArgoCD Application (dev + prod) | ✅ |
+| NetworkPolicy (workload isolation) | ✅ |
+| External Secrets example | ✅ |
 | Grafana dashboard + Prometheus config | ✅ |
 | Deployment metadata (/info, build_info metric) | ✅ |
+| Rate limiting (login, API) | ✅ |
+| Audit logging (auth, task, note actions) | ✅ |
+| Refresh tokens | ✅ |
+| Basic RBAC (user, admin roles) | ✅ |
 
 ---
 
@@ -112,10 +118,12 @@ taskforge-backend/
 │   └── db/               # Base, mixins
 ├── alembic/              # Migrations
 ├── deploy/               # GitOps manifests
-│   ├── kustomize/        # base + overlays (dev, prod)
-│   ├── argocd/           # ArgoCD Application example
-│   └── examples/         # Generic example manifests
-├── observability/        # Grafana dashboard, Prometheus config, Loki guidance
+│   ├── kustomize/        # base + overlays (dev, prod), NetworkPolicy
+│   ├── argocd/           # ArgoCD Applications (dev + prod)
+│   ├── external-secrets/ # Production secret injection example
+│   └── SECRETS.md, GITOPS.md
+├── docs/                 # DATA-PROTECTION.md, MFA-DESIGN.md
+├── observability/        # Grafana, Prometheus, Loki, alert rules
 ├── tests/
 ├── .github/workflows/    # CI
 ├── Dockerfile            # dev + prod targets
@@ -207,6 +215,10 @@ Tests use SQLite. `conftest.py` sets `DATABASE_URL`, `SECRET_KEY`, `APP_ENV`.
 | `SECRET_KEY` | Yes (prod) | JWT signing key. Generate: `openssl rand -hex 32` |
 | `JWT_ALGORITHM` | No | Default: HS256 |
 | `ACCESS_TOKEN_EXPIRE_MINUTES` | No | Default: 30 |
+| `REFRESH_TOKEN_EXPIRE_DAYS` | No | Default: 7 |
+| `RATE_LIMIT_ENABLED` | No | Default: true. Set false to disable (e.g. tests) |
+| `RATE_LIMIT_LOGIN_PER_MINUTE` | No | Default: 5 |
+| `RATE_LIMIT_API_PER_MINUTE` | No | Default: 100 |
 | `DEBUG` | No | Default: false |
 | `LOG_LEVEL` | No | Default: INFO |
 | `APP_VERSION` | No | Version override (CI injects from build) |
@@ -228,7 +240,18 @@ Tests use SQLite. `conftest.py` sets `DATABASE_URL`, `SECRET_KEY`, `APP_ENV`.
 - **CI:** Bandit (static analysis), pip-audit (dependency vulnerabilities).
 - **Supply chain:** Actions pinned by SHA; SBOM generated; Docker image tagged by commit SHA; build provenance attestation for SBOM and build-metadata artifacts.
 
-**Known limitations:** No refresh tokens, rate limiting, or RBAC. Container image signing deferred (requires registry push). See Roadmap.
+### Security Enhancements
+
+These controls address production-readiness gaps identified in security evaluations:
+
+| Control | Purpose |
+|---------|---------|
+| **Rate limiting** | Prevents brute-force login and API abuse. Login: 5/min per IP; API: 100/min per user or IP. Configure via `RATE_LIMIT_*` env vars. |
+| **Audit logging** | Tracks security-relevant actions (login success/failure, registration, task/note CRUD) with `event_type: audit` in structured logs. Includes user_id, action, resource_id, request_id. No passwords or tokens logged. |
+| **Refresh tokens** | Long-lived JWT for token refresh. Use `POST /api/v1/auth/refresh` with `{"refresh_token": "..."}` to get new access and refresh tokens. |
+| **RBAC / roles** | User model has `role` (default: `user`). Admin-only routes use `require_role("admin")`. Example: `GET /api/v1/admin/stats`. Create admin via DB: `UPDATE users SET role='admin' WHERE email='...'`. |
+
+**Known limitations:** MFA not implemented (design in `docs/MFA-DESIGN.md`). Container image signing deferred. See Roadmap.
 
 ---
 
@@ -246,6 +269,10 @@ Tests use SQLite. `conftest.py` sets `DATABASE_URL`, `SECRET_KEY`, `APP_ENV`.
 
 **Grafana/Prometheus/Loki:** See `observability/README.md`. Import `observability/grafana/taskforge-overview.json` for dashboards. `observability/loki-labeling-guidance.md` for LogQL and label guidance.
 
+**Alerting:** `observability/prometheus-alerts.example.yml` — TaskForgeDown, HighErrorRate, HighLatency.
+
+**Audit logs → SIEM:** Filter by `event_type: audit`. See `observability/README.md` for Loki/SIEM routing.
+
 ---
 
 ## 11. GitOps Readiness
@@ -254,7 +281,7 @@ Tests use SQLite. `conftest.py` sets `DATABASE_URL`, `SECRET_KEY`, `APP_ENV`.
 
 ```
 deploy/kustomize/
-├── base/           # Deployment, Service, ConfigMap, Secret
+├── base/           # Deployment, Service, ConfigMap, Secret, NetworkPolicy
 └── overlays/
     ├── dev/        # kustomization.yaml, patch.yaml (environment=dev)
     └── prod/       # kustomization.yaml, patch.yaml (environment=prod)
@@ -262,11 +289,18 @@ deploy/kustomize/
 
 Apply: `kubectl apply -k deploy/kustomize/overlays/dev` (or `prod`).
 
+### Secrets (Production)
+
+**Base secret is for local/dev only.** Production must use External Secrets Operator or equivalent. See `deploy/SECRETS.md` and `deploy/external-secrets/`.
+
+### NetworkPolicy
+
+Base includes a NetworkPolicy for workload isolation (ingress on 8000, egress to DNS and PostgreSQL). Tighten for production per `deploy/kustomize/base/network-policy.yaml` comments.
+
 ### ArgoCD Usage Pattern
 
-1. Point ArgoCD Application at `deploy/kustomize/overlays/dev` (or `prod`).
-2. Use `deploy/argocd/application.yaml` or `deploy/examples/argocd-application.yaml` as template.
-3. ArgoCD syncs on commit; no cluster-specific config required.
+- **Dev:** `deploy/argocd/application.yaml` — automated sync.
+- **Prod:** `deploy/argocd/application-prod.yaml` — manual sync. See `deploy/GITOPS.md`.
 
 ### Image Tagging Strategy
 
@@ -308,8 +342,10 @@ GitHub Actions runs on push/PR to `main`:
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | POST | `/api/v1/auth/register` | Register user |
-| POST | `/api/v1/auth/login` | Login, get JWT |
+| POST | `/api/v1/auth/login` | Login, get JWT + refresh token |
+| POST | `/api/v1/auth/refresh` | Exchange refresh token for new tokens |
 | GET | `/api/v1/users/me` | Current user (auth) |
+| GET | `/api/v1/admin/stats` | Admin-only: user/task/note counts |
 | POST | `/api/v1/tasks` | Create task |
 | GET | `/api/v1/tasks` | List tasks (`?status=`, `?priority=`) |
 | GET | `/api/v1/tasks/{id}` | Get task |
@@ -347,10 +383,8 @@ GitHub Actions runs on push/PR to `main`:
 
 **Planned next:**
 
-- [ ] Refresh tokens
-- [ ] Rate limiting
-- [ ] RBAC
-- [ ] Audit logging
+- [ ] MFA for admin (design in `docs/MFA-DESIGN.md`)
+- [ ] Audit logging retention / export
 - [ ] Image publish to registry (ghcr.io, ECR)
 - [ ] ArgoCD Image Updater or CI-driven overlay updates
 

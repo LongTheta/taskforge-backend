@@ -5,7 +5,7 @@ resources:
   - deployment.yaml
   - service.yaml
   - configmap.yaml
-  - secret.yaml
+  - network-policy.yaml
 
 commonLabels:
   app.kubernetes.io/name: taskforge-backend

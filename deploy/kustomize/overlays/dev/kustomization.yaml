@@ -5,6 +5,7 @@ namespace: taskforge-dev
 
 resources:
   - ../../base
+  - secret.yaml  # Dev: placeholder secret (LOCAL/DEV only)
 
 images:
   - name: taskforge-backend

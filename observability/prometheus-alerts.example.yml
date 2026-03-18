@@ -1,0 +1,33 @@
+# Prometheus alert rules for TaskForge Backend
+# Add to Prometheus rule_files or use with Prometheus Operator Rule
+groups:
+  - name: taskforge-backend
+    rules:
+      - alert: TaskForgeDown
+        expr: up{job="taskforge-backend"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "TaskForge Backend is down"
+
+      - alert: TaskForgeHighErrorRate
+        expr: |
+          rate(http_requests_total{job="taskforge-backend",status=~"5.."}[5m])
+          / rate(http_requests_total{job="taskforge-backend"}[5m]) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "TaskForge error rate > 5%"
+
+      - alert: TaskForgeHighLatency
+        expr: |
+          histogram_quantile(0.99,
+            rate(http_request_duration_seconds_bucket{job="taskforge-backend"}[5m])
+          ) > 2
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "TaskForge p99 latency > 2s"

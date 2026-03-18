@@ -1,0 +1,43 @@
+# NetworkPolicy — Zero Trust workload isolation
+#
+# Ingress: Allow HTTP (8000) from ingress controller or cluster-internal traffic.
+# Egress: Allow DNS; allow PostgreSQL (5432). Deny all other egress.
+#
+# Assumptions:
+# - PostgreSQL may be in-cluster (e.g. postgres service) or external.
+# - For external DB: egress to 5432 allows connection; adjust if DB uses different port.
+# - Ingress: adjust namespaceSelector if your ingress controller lives in a specific namespace.
+#
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: taskforge-backend
+  labels:
+    app: taskforge-backend
+spec:
+  podSelector:
+    matchLabels:
+      app: taskforge-backend
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    # Allow HTTP (8000) from cluster. Tighten for production:
+    # - Restrict to ingress namespace: namespaceSelector.matchLabels.name=ingress-nginx
+    # - Or to specific service mesh / gateway labels
+    - ports:
+        - protocol: TCP
+          port: 8000
+  egress:
+    # DNS (required for service discovery)
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+    # PostgreSQL — allow egress to DB port (in-cluster or external)
+    - ports:
+        - protocol: TCP
+          port: 5432

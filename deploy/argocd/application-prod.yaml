@@ -1,0 +1,28 @@
+# ArgoCD Application — PROD (manual sync)
+#
+# Production uses manual sync for stronger control. Changes require explicit sync.
+# CI promotion gate (GitHub production environment) must pass before updating overlay.
+#
+# Apply: kubectl apply -f application-prod.yaml
+# Sync: ArgoCD UI or CLI — argocd app sync taskforge-backend-prod
+#
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: taskforge-backend-prod
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/LongTheta/taskforge-backend.git
+    path: deploy/kustomize/overlays/prod
+    targetRevision: main
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: taskforge-prod
+  syncPolicy:
+    # No automated sync — manual sync required
+    syncOptions:
+      - CreateNamespace=true

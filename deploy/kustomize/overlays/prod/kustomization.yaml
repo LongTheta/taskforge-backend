@@ -5,6 +5,7 @@ namespace: taskforge-prod
 
 resources:
   - ../../base
+  - external-secret.yaml  # Prod: ESO injects secrets (no placeholder in Git)
 
 images:
   - name: taskforge-backend
@@ -15,6 +16,10 @@ patches:
   - path: patch.yaml
     target:
       kind: Deployment
+      name: taskforge-backend
+  - path: network-policy-patch.yaml
+    target:
+      kind: NetworkPolicy
       name: taskforge-backend
   - target:
       kind: ConfigMap

@@ -1,9 +1,12 @@
-# Example ArgoCD Application - deploy taskforge-backend from this repo
-# Adjust repo URL, path, and targetRevision for your setup
+# ArgoCD Application — DEV (automated sync)
+#
+# Dev can use automated sync; production should use application-prod.yaml.
+# Adjust repoURL, path, and targetRevision for your setup.
+#
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: taskforge-backend
+  name: taskforge-backend-dev
   namespace: argocd
   finalizers:
     - resources-finalizer.argocd.argoproj.io

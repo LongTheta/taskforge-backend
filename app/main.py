@@ -5,13 +5,17 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
 
-from app.api.routes import auth, health, notes, tasks, users
+from app.api.routes import admin, auth, health, notes, tasks, users
 from app.core.config import APP_VERSION, get_settings
 from app.core.logging_config import configure_logging
 from app.core.middleware import REQUEST_ID_HEADER, RequestLoggingMiddleware
+from app.core.rate_limit import get_limiter
 
 logger = logging.getLogger(__name__)
+limiter = get_limiter()
 
 
 @asynccontextmanager
@@ -48,6 +52,8 @@ app = FastAPI(
     ],
 )
 
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 app.add_middleware(RequestLoggingMiddleware)
 
 
@@ -72,5 +78,6 @@ async def unhandled_exception_handler(request: Request, exc: Exception):
 app.include_router(health.router)
 app.include_router(auth.router, prefix="/api/v1")
 app.include_router(users.router, prefix="/api/v1")
+app.include_router(admin.router, prefix="/api/v1")
 app.include_router(tasks.router, prefix="/api/v1")
 app.include_router(notes.router, prefix="/api/v1")

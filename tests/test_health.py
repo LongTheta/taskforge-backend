@@ -9,8 +9,9 @@ def test_health(client):
     assert resp.status_code == 200
     data = resp.json()
     assert data["status"] == "ok"
-    assert "service" in data
+    assert data["service"] == "taskforge-backend"
     assert "version" in data
+    assert data["env"] == "test"
 
 
 def test_ready(client):

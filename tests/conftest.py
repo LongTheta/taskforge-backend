@@ -7,9 +7,10 @@ from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-# Use SQLite for fast tests - override before importing app modules
+# Override before importing app modules
 os.environ["DATABASE_URL"] = "sqlite:///./test.db"
 os.environ["SECRET_KEY"] = "test-secret-key-for-testing-only"
+os.environ["APP_ENV"] = "test"
 
 from app.core.database import get_db
 from app.db.base import Base

@@ -1,20 +1,16 @@
-"""FastAPI dependencies for auth and database.
-
-Protected routes use CurrentUser; unauthenticated requests return 401.
-All task/note access is user-scoped via or_404 + service-layer filtering.
-"""
+"""Auth and database dependencies. Protected routes use CurrentUser."""
 
 from typing import Annotated, TypeVar
 
 from fastapi import Depends, HTTPException, status
-
-T = TypeVar("T")
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.core.security import decode_access_token
 from app.models.user import User
+
+T = TypeVar("T")
 
 security = HTTPBearer(auto_error=False)
 
@@ -59,7 +55,6 @@ def get_current_user(
     return user
 
 
-# Type aliases for cleaner route signatures
 CurrentUser = Annotated[User, Depends(get_current_user)]
 DbSession = Annotated[Session, Depends(get_db)]
 

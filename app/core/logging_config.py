@@ -1,4 +1,4 @@
-"""Structured logging configuration."""
+"""Structured logging. JSON in prod, human-readable when DEBUG."""
 
 import json
 import logging
@@ -8,15 +8,10 @@ from app.core.config import get_settings
 
 
 def configure_logging() -> None:
-    """Configure logging for the application."""
     settings = get_settings()
     level = getattr(logging, settings.log_level.upper(), logging.INFO)
-
-    # Root logger
     root = logging.getLogger()
     root.setLevel(level)
-
-    # Clear existing handlers
     for h in root.handlers[:]:
         root.removeHandler(h)
 
@@ -35,7 +30,7 @@ def configure_logging() -> None:
 
 
 class JsonFormatter(logging.Formatter):
-    """JSON log formatter for structured logging (Grafana/Loki)."""
+    """JSON formatter for Grafana/Loki."""
 
     def format(self, record: logging.LogRecord) -> str:
         log_data = {

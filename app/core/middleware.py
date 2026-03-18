@@ -1,4 +1,4 @@
-"""Request ID, logging, and metrics middleware."""
+"""Request ID, structured logging, and Prometheus metrics."""
 
 import logging
 import time
@@ -58,8 +58,6 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
                 time.perf_counter() - start
             )
             raise
-        finally:
-            pass  # dec happens in success path below
 
         duration = time.perf_counter() - start
         duration_ms = duration * 1000

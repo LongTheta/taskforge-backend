@@ -1,13 +1,17 @@
-"""Application configuration from environment variables.
-
-All secrets must come from env vars. Never hardcode secrets.
-Local dev: defaults are acceptable when DEBUG=true or DATABASE_URL points to localhost.
-Production: set DATABASE_URL, SECRET_KEY explicitly.
-"""
+"""Runtime configuration. Secrets from env only. Production: APP_ENV=production, DATABASE_URL, SECRET_KEY."""
 
 from functools import lru_cache
+from typing import Literal
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+APP_VERSION = "0.1.0"
+
+INSECURE_SECRET_KEYS = frozenset({
+    "change-me-in-production",
+    "your-secret-key-change-in-production",
+    "dev-secret-key-change-in-production",
+})
 
 
 class Settings(BaseSettings):
@@ -19,17 +23,22 @@ class Settings(BaseSettings):
         case_sensitive=False,
     )
 
-    # Database - REQUIRED in production. Default for local dev only.
+    app_env: Literal["development", "production", "test"] = "development"
     database_url: str = "postgresql://taskforge:taskforge@localhost:5432/taskforge"
-
-    # Security - REQUIRED in production. Generate: openssl rand -hex 32
-    secret_key: str = "change-me-in-production"
+    secret_key: str = "change-me-in-production"  # Production: openssl rand -hex 32
     jwt_algorithm: str = "HS256"
     access_token_expire_minutes: int = 30
-
-    # App
     debug: bool = False
     log_level: str = "INFO"
+    git_sha: str | None = None
+
+    @property
+    def is_production(self) -> bool:
+        return self.app_env == "production"
+
+    @property
+    def is_secure_secret(self) -> bool:
+        return self.secret_key not in INSECURE_SECRET_KEYS
 
 
 @lru_cache

@@ -1,5 +1,5 @@
-# TaskForge Backend - Common commands
-.PHONY: install dev test lint format migrate up down
+# TaskForge Backend
+.PHONY: install dev test lint format security migrate up down docker-build
 
 install:
 	pip install -e ".[dev]"
@@ -11,12 +11,13 @@ test:
 	pytest tests/ -v
 
 lint:
-	ruff check app tests
-	ruff format --check app tests
+	ruff check app tests && ruff format --check app tests
 
 format:
-	ruff check app tests --fix
-	ruff format app tests
+	ruff check app tests --fix && ruff format app tests
+
+security:
+	bandit -r app -c pyproject.toml && pip-audit
 
 migrate:
 	alembic upgrade head
@@ -26,3 +27,6 @@ up:
 
 down:
 	docker compose down
+
+docker-build:
+	docker build --target prod -t taskforge-backend:prod .

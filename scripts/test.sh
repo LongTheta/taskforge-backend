@@ -5,6 +5,7 @@ cd "$(dirname "$0")/.."
 
 export DATABASE_URL="sqlite:///./test.db"
 export SECRET_KEY="test-secret"
+export APP_ENV="test"
 
 echo "Running pytest..."
 pytest tests/ -v

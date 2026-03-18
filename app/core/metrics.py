@@ -1,4 +1,4 @@
-"""Prometheus metrics."""
+"""Prometheus metrics for request count, duration, in-flight."""
 
 from prometheus_client import Counter, Gauge, Histogram, generate_latest
 

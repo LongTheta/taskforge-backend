@@ -1,22 +1,29 @@
 """Health, readiness, and metrics endpoints."""
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter
 from fastapi.responses import Response
 from sqlalchemy import text
-from sqlalchemy.orm import Session
 
 from app.api.deps import DbSession
+from app.core.config import APP_VERSION, get_settings
 from app.core.metrics import get_metrics
 
 router = APIRouter(tags=["health"])
-
-SERVICE_VERSION = "0.1.0"
 
 
 @router.get("/health")
 def health():
     """Liveness probe - returns 200 if the app is running."""
-    return {"status": "ok", "service": "taskforge-backend", "version": SERVICE_VERSION}
+    settings = get_settings()
+    payload: dict = {
+        "status": "ok",
+        "service": "taskforge-backend",
+        "version": APP_VERSION,
+        "env": settings.app_env,
+    }
+    if settings.git_sha:
+        payload["git_sha"] = settings.git_sha
+    return payload
 
 
 @router.get("/ready")

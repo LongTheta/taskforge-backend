@@ -1,11 +1,9 @@
 """Task CRUD routes."""
 
-from typing import Literal
-
 from fastapi import APIRouter, Query, status
 
 from app.api.deps import CurrentUser, DbSession, or_404
-from app.schemas.task import TaskCreate, TaskResponse, TaskUpdate
+from app.schemas.task import TaskCreate, TaskPriority, TaskResponse, TaskStatus, TaskUpdate
 from app.services.task_service import (
     create_task,
     delete_task,
@@ -15,9 +13,6 @@ from app.services.task_service import (
 )
 
 router = APIRouter(prefix="/tasks", tags=["tasks"])
-
-TaskStatusFilter = Literal["todo", "in_progress", "done"]
-TaskPriorityFilter = Literal["low", "medium", "high"]
 
 
 @router.post("", response_model=TaskResponse, status_code=status.HTTP_201_CREATED)
@@ -30,8 +25,8 @@ def create(data: TaskCreate, current_user: CurrentUser, db: DbSession):
 def list_tasks(
     current_user: CurrentUser,
     db: DbSession,
-    status: TaskStatusFilter | None = Query(None, description="Filter by status"),
-    priority: TaskPriorityFilter | None = Query(None, description="Filter by priority"),
+    status: TaskStatus | None = Query(None, description="Filter by status"),
+    priority: TaskPriority | None = Query(None, description="Filter by priority"),
 ):
     """List all tasks for the current user. Optional filters: status, priority."""
     return get_tasks(db, current_user, status=status, priority=priority)

@@ -23,6 +23,7 @@ services:
     ports:
       - "8000:8000"
     environment:
+      APP_ENV: development
       DATABASE_URL: postgresql://taskforge:taskforge@db:5432/taskforge
       SECRET_KEY: dev-secret-key-change-in-production
     depends_on:

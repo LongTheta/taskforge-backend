@@ -4,35 +4,33 @@
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.109+-green.svg)](https://fastapi.tiangolo.com/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-A production-style FastAPI backend for **TaskForge** — tasks, notes, users, and auth. Designed as a reference service for platform engineering, GitOps, and observability demos.
+A clean, production-style FastAPI backend for **TaskForge** — tasks, notes, users, and auth. Designed as a reference service for platform engineering, GitOps, and observability demos.
 
 ---
 
 ## What This Service Does
 
-TaskForge Backend provides:
-
-- **Authentication** — User registration, login, JWT access tokens (bcrypt password hashing)
+- **Authentication** — User registration, login, JWT access tokens (bcrypt)
 - **Tasks** — Full CRUD with status, priority, due dates, tags; optional filtering
 - **Notes** — Full CRUD with content and tags
 - **PostgreSQL** — SQLAlchemy 2.x persistence with Alembic migrations
 
 ---
 
-## Core Features
+## Implemented Features
 
 | Feature | Status |
 |---------|--------|
-| JWT auth (register, login) | ✅ Implemented |
-| Task CRUD + status/priority filters | ✅ Implemented |
-| Note CRUD | ✅ Implemented |
-| PostgreSQL + Alembic | ✅ Implemented |
-| Health / readiness probes | ✅ Implemented |
-| OpenAPI docs (`/docs`, `/redoc`) | ✅ Implemented |
-| Structured logging + request IDs | ✅ Implemented |
-| Prometheus metrics (`/metrics`) | ✅ Implemented |
-| Docker (dev + prod) | ✅ Implemented |
-| GitHub Actions CI | ✅ Implemented |
+| JWT auth (register, login) | ✅ |
+| Task CRUD + status/priority filters | ✅ |
+| Note CRUD | ✅ |
+| PostgreSQL + Alembic | ✅ |
+| Health / readiness probes | ✅ |
+| OpenAPI docs (`/docs`, `/redoc`) | ✅ |
+| Structured logging + request IDs | ✅ |
+| Prometheus metrics (`/metrics`) | ✅ |
+| Docker (dev + prod targets) | ✅ |
+| GitHub Actions CI (lint, test, security, Docker) | ✅ |
 
 ---
 
@@ -51,7 +49,6 @@ Client → FastAPI → Middleware (logging, metrics, request ID)
 
 - Python 3.11+
 - PostgreSQL (or Docker Compose for DB)
-- pip or uv
 
 ### Setup
 
@@ -59,7 +56,7 @@ Client → FastAPI → Middleware (logging, metrics, request ID)
 cd taskforge-backend
 pip install -e ".[dev]"
 cp .env.example .env
-# Edit .env: set DATABASE_URL, SECRET_KEY (see Environment Variables)
+# Edit .env: DATABASE_URL, SECRET_KEY
 alembic upgrade head
 ```
 
@@ -81,10 +78,19 @@ uvicorn app.main:app --reload --port 8000
 ```bash
 pytest tests/ -v
 # Or: make test
-# Or: python -m pytest tests/ -v
 ```
 
-Tests use SQLite by default. `DATABASE_URL` and `SECRET_KEY` are set in `conftest.py`; override via env if needed.
+Tests use SQLite. `conftest.py` sets `DATABASE_URL`, `SECRET_KEY`, `APP_ENV`.
+
+---
+
+## Lint, Format, Security
+
+```bash
+make lint      # Ruff check and format check
+make format    # Ruff fix and format
+make security  # Bandit and pip-audit
+```
 
 ---
 
@@ -98,20 +104,17 @@ alembic upgrade head
 uvicorn app.main:app --reload --port 8000
 ```
 
-### Full stack (DB + backend)
+### Full stack
 
 ```bash
 docker compose up --build
 ```
 
-Backend at http://localhost:8000.
-
 ### Production image
-
-The Dockerfile uses a multi-stage build. Production image excludes dev dependencies:
 
 ```bash
 docker build --target prod -t taskforge-backend:prod .
+# Or: make docker-build
 ```
 
 ---
@@ -120,21 +123,23 @@ docker build --target prod -t taskforge-backend:prod .
 
 | Variable | Required | Description |
 |----------|----------|-------------|
+| `APP_ENV` | No | `development` \| `production` \| `test`. Default: development |
 | `DATABASE_URL` | Yes (prod) | PostgreSQL connection string |
 | `SECRET_KEY` | Yes (prod) | JWT signing key. Generate: `openssl rand -hex 32` |
 | `JWT_ALGORITHM` | No | Default: HS256 |
 | `ACCESS_TOKEN_EXPIRE_MINUTES` | No | Default: 30 |
-| `DEBUG` | No | Default: false. Enable for verbose logs |
+| `DEBUG` | No | Default: false |
 | `LOG_LEVEL` | No | Default: INFO |
+| `GIT_SHA` | No | Build metadata (set by CI) |
 
-**Security:** Never use default `SECRET_KEY` in production. Never commit `.env`.
+**Security:** In production, set `APP_ENV=production`, `DATABASE_URL`, and `SECRET_KEY`. Never commit `.env`.
 
 ---
 
 ## API Routes
 
 | Method | Endpoint | Description |
-|--------|----------|--------------|
+|--------|----------|-------------|
 | POST | `/api/v1/auth/register` | Register user |
 | POST | `/api/v1/auth/login` | Login, get JWT |
 | GET | `/api/v1/users/me` | Current user (auth) |
@@ -148,58 +153,75 @@ docker build --target prod -t taskforge-backend:prod .
 | GET | `/api/v1/notes/{id}` | Get note |
 | PATCH | `/api/v1/notes/{id}` | Update note |
 | DELETE | `/api/v1/notes/{id}` | Delete note |
-| GET | `/health` | Liveness probe |
-| GET | `/ready` | Readiness probe (DB check) |
+| GET | `/health` | Liveness (version, env, optional git_sha) |
+| GET | `/ready` | Readiness (DB check) |
 | GET | `/metrics` | Prometheus metrics |
+
+---
+
+## Auth Overview
+
+- Register: `POST /api/v1/auth/register` with `email`, `password` (min 8 chars)
+- Login: `POST /api/v1/auth/login` → returns `access_token`
+- Protected routes: `Authorization: Bearer <token>`
+- Task/note access is user-scoped
 
 ---
 
 ## Observability
 
-- **Request ID** — Each request gets an `X-Request-ID` header. Pass it in requests for correlation; it is returned in responses.
-- **Structured logging** — JSON logs (method, path, status, duration, request_id) for Grafana/Loki integration.
-- **Prometheus metrics** — `http_requests_total`, `http_request_duration_seconds`, `http_requests_in_progress` at `/metrics`.
+- **Request ID** — `X-Request-ID` header on requests and responses
+- **Structured logging** — JSON logs (method, path, status, duration, request_id)
+- **Prometheus** — `http_requests_total`, `http_request_duration_seconds`, `http_requests_in_progress` at `/metrics`
+
+---
+
+## CI Overview
+
+GitHub Actions runs on push/PR to main:
+
+- **lint** — Ruff check + format
+- **test** — pytest
+- **security** — Bandit, pip-audit
+- **docker** — Build prod image
 
 ---
 
 ## Security Notes
 
-- Passwords hashed with bcrypt; minimum 8 characters for registration.
-- JWT tokens; set `SECRET_KEY` via env in production.
-- Protected routes require `Authorization: Bearer <token>`.
-- Task/note access is user-scoped; no cross-user data leakage.
-- No stack traces returned to clients in production.
+- Passwords: bcrypt, min 8 chars. JWT: set `SECRET_KEY` via env in production.
+- No stack traces to clients. Task/note access user-scoped.
+- CI runs Bandit and pip-audit.
 
 ---
 
-## Project Structure
+## Repo Structure
 
 ```
 taskforge-backend/
 ├── app/
-│   ├── main.py           # FastAPI app, middleware, routes
-│   ├── core/             # Config, security, database, logging
+│   ├── main.py           # FastAPI app, middleware, exception handler
+│   ├── core/             # Config, security, database, logging, metrics
 │   ├── api/              # Routes, deps
 │   ├── models/           # SQLAlchemy models
-│   ├── schemas/           # Pydantic schemas
+│   ├── schemas/          # Pydantic schemas
 │   ├── services/         # Business logic
-│   └── db/               # Base, mixins, session
+│   └── db/               # Base, mixins
 ├── alembic/
 ├── tests/
-├── .github/workflows/     # CI
-├── Dockerfile
+├── .github/workflows/    # CI
+├── Dockerfile            # dev + prod targets
 ├── docker-compose.yml
 └── pyproject.toml
 ```
 
 ---
 
-## Future Roadmap
+## Roadmap
 
 **Planned next:**
 
 - [ ] Alembic migration validation in CI
-- [ ] Security scanning (e.g. bandit, safety)
 - [ ] Refresh tokens
 - [ ] Rate limiting
 - [ ] Helm/Kustomize manifests
@@ -209,6 +231,7 @@ taskforge-backend/
 
 - [ ] RBAC
 - [ ] OpenTelemetry traces
+- [ ] CodeQL, Trivy
 - [ ] Frontend integration
 
 ---
@@ -225,6 +248,8 @@ taskforge-backend/
 | Validation | Pydantic v2 |
 | Metrics | prometheus_client |
 | Testing | pytest, FastAPI TestClient |
+| Lint | Ruff |
+| Security | Bandit, pip-audit |
 
 ---
 

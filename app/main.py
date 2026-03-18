@@ -7,31 +7,27 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
 from app.api.routes import auth, health, notes, tasks, users
+from app.core.config import APP_VERSION, get_settings
 from app.core.logging_config import configure_logging
 from app.core.middleware import RequestLoggingMiddleware
+
+logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Application lifespan - startup and shutdown."""
+    """Startup: configure logging, validate production secrets."""
     configure_logging()
-    from app.core.config import get_settings
-
     settings = get_settings()
-    if not settings.debug and settings.secret_key in (
-        "change-me-in-production",
-        "your-secret-key-change-in-production",
-    ):
-        logging.getLogger(__name__).warning(
-            "SECRET_KEY appears to be default. Set SECRET_KEY in production."
-        )
+    if settings.is_production and not settings.is_secure_secret:
+        logger.warning("SECRET_KEY appears insecure. Set SECRET_KEY in production.")
     yield
 
 
 app = FastAPI(
     title="TaskForge API",
     description="Secure task and notes platform backend. JWT auth, task/note CRUD, PostgreSQL.",
-    version="0.1.0",
+    version=APP_VERSION,
     lifespan=lifespan,
     docs_url="/docs",
     redoc_url="/redoc",
@@ -48,9 +44,8 @@ app.add_middleware(RequestLoggingMiddleware)
 
 
 @app.exception_handler(Exception)
-async def unhandled_exception_handler(request: Request, exc: Exception):
-    """Log unhandled exceptions and return safe error response."""
-    logger = logging.getLogger(__name__)
+async def unhandled_exception_handler(_request: Request, exc: Exception):
+    """Log unhandled exceptions; return safe 500 response (no stack trace)."""
     logger.exception("Unhandled exception: %s", exc)
     return JSONResponse(
         status_code=500,
@@ -58,7 +53,6 @@ async def unhandled_exception_handler(request: Request, exc: Exception):
     )
 
 
-# Routes
 app.include_router(health.router)
 app.include_router(auth.router, prefix="/api/v1")
 app.include_router(users.router, prefix="/api/v1")

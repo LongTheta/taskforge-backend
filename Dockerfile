@@ -1,5 +1,6 @@
 # Multi-stage: dev (default), prod
-FROM python:3.11-slim AS base
+# Pinned for supply chain reproducibility (update periodically)
+FROM python:3.11.9-slim AS base
 WORKDIR /app
 RUN apt-get update && apt-get install -y --no-install-recommends libpq5 \
     && rm -rf /var/lib/apt/lists/*

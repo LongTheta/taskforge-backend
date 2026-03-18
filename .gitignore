@@ -26,6 +26,10 @@ wheels/
 .installed.cfg
 *.egg
 
+# CI artifacts
+sbom.json
+build-metadata/
+
 # Testing
 .pytest_cache/
 test.db

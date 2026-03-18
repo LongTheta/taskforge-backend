@@ -30,6 +30,13 @@ Version comes from the package; `GIT_SHA` and `IMAGE_TAG` are optional env overr
 | **stage**   | Env vars / ConfigMap | Staging     |
 | **prod**    | Env vars / Secret    | Production  |
 
+## CI/CD Supply Chain
+
+- **Actions:** Pinned by full 40-char SHA.
+- **SBOM:** CycloneDX JSON generated in CI; artifact `sbom`.
+- **Build metadata:** `build-metadata` artifact with `git_sha`, `image_tag`, `version`.
+- **Promotion gate:** `promote` job uses `production` environment; configure required reviewers in Settings → Environments.
+
 ## Future GitOps
 
 - **Helm:** Chart could wrap app, env vars, and probes.

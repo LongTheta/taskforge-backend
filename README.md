@@ -32,9 +32,13 @@ A production-style FastAPI backend for **TaskForge** — tasks, notes, users, an
 | Prometheus metrics (`/metrics`) | ✅ |
 | Docker (dev + prod targets) | ✅ |
 | Docker Compose (local stack) | ✅ |
-| GitHub Actions CI (lint, test, security, Docker) | ✅ |
+| GitHub Actions CI (lint, test, security, SBOM, Docker) | ✅ |
+| Pinned workflow actions (full SHA) | ✅ |
+| SBOM generation (CycloneDX) | ✅ |
 | Production secret validation | ✅ |
 | GitOps deployment metadata | ✅ |
+| Manual promotion gate (placeholder) | ✅ |
+| Build provenance attestation (SLSA-style) | ✅ |
 
 ---
 
@@ -176,8 +180,9 @@ Tests use SQLite. `conftest.py` sets `DATABASE_URL`, `SECRET_KEY`, `APP_ENV`.
 - **Secrets:** Never commit `.env`. In production, startup fails if `SECRET_KEY` is a known insecure value.
 - **API:** No stack traces to clients. Task/note access is user-scoped.
 - **CI:** Bandit (static analysis), pip-audit (dependency vulnerabilities).
+- **Supply chain:** Actions pinned by SHA; SBOM generated; Docker image tagged by commit SHA; build provenance attestation for SBOM and build-metadata artifacts.
 
-**Known limitations:** No refresh tokens, rate limiting, or RBAC. See Roadmap.
+**Known limitations:** No refresh tokens, rate limiting, or RBAC. Container image signing deferred (requires registry push). See Roadmap.
 
 ---
 
@@ -212,7 +217,15 @@ GitHub Actions runs on push/PR to `main`:
 | **lint** | Ruff check + format; fails if code needs formatting |
 | **test** | pytest with SQLite |
 | **security** | Bandit, pip-audit |
-| **docker** | Build prod image |
+| **sbom** | CycloneDX SBOM (JSON); uploaded as artifact |
+| **docker** | Build prod image; tag with commit SHA; build metadata artifact |
+| **promote** | Manual gate (runs on push to main or workflow_dispatch); requires `production` environment approval |
+
+**Supply chain:** All actions pinned by full 40-char SHA. Docker base image pinned. SBOM generated for Python deps. Build provenance attestation for SBOM and build-metadata (SLSA-style, signed via Sigstore; verify with `gh attestation verify`).
+
+**Promotion gate:** Configure `production` environment in repo Settings → Environments with required reviewers. The promote job blocks until approved.
+
+**Artifact traceability:** `build-metadata` artifact contains `git_sha`, `image_tag`, `version`. Use `GIT_SHA` and `IMAGE_TAG` env vars at deploy time.
 
 ---
 
@@ -254,7 +267,8 @@ GitHub Actions runs on push/PR to `main`:
 
 - [ ] OpenTelemetry tracing
 - [ ] CodeQL, Trivy container scanning
-- [ ] SBOM generation
+- [ ] Container image attestation (requires registry push; use `attest-build-provenance` with `push-to-registry`)
+- [ ] cosign/signing for critical artifacts (optional hardening)
 
 ---
 

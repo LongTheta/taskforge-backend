@@ -44,7 +44,8 @@ jobs:
           python-version: ${{ env.PYTHON_VERSION }}
       - run: pip install -e ".[dev]"
       - run: bandit -r app -c pyproject.toml
-      - run: pip-audit
+      # --skip-editable: skip local taskforge-backend; CVE-2024-23342: ecdsa timing attack, we use HS256 not ECDSA
+      - run: pip-audit --skip-editable --ignore-vuln CVE-2024-23342
 
   docker:
     runs-on: ubuntu-latest

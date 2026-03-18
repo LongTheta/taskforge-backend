@@ -9,8 +9,8 @@ from app.db.base import Base
 from app.db.mixins import TimestampMixin
 
 if TYPE_CHECKING:
-    from app.models.task import Task
     from app.models.note import Note
+    from app.models.task import Task
 
 
 class User(Base, TimestampMixin):

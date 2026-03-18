@@ -17,7 +17,7 @@ format:
 	ruff check app tests --fix && ruff format app tests
 
 security:
-	bandit -r app -c pyproject.toml && pip-audit
+	bandit -r app -c pyproject.toml && pip-audit --skip-editable --ignore-vuln CVE-2024-23342
 
 migrate:
 	alembic upgrade head

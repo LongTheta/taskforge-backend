@@ -9,7 +9,7 @@ from fastapi.responses import JSONResponse
 from app.api.routes import auth, health, notes, tasks, users
 from app.core.config import APP_VERSION, get_settings
 from app.core.logging_config import configure_logging
-from app.core.middleware import RequestLoggingMiddleware
+from app.core.middleware import REQUEST_ID_HEADER, RequestLoggingMiddleware
 
 logger = logging.getLogger(__name__)
 
@@ -19,8 +19,7 @@ async def lifespan(app: FastAPI):
     """Startup: configure logging, validate production secrets."""
     configure_logging()
     settings = get_settings()
-    if settings.is_production and not settings.is_secure_secret:
-        logger.warning("SECRET_KEY appears insecure. Set SECRET_KEY in production.")
+    settings.validate_production()
     yield
 
 
@@ -44,13 +43,21 @@ app.add_middleware(RequestLoggingMiddleware)
 
 
 @app.exception_handler(Exception)
-async def unhandled_exception_handler(_request: Request, exc: Exception):
-    """Log unhandled exceptions; return safe 500 response (no stack trace)."""
-    logger.exception("Unhandled exception: %s", exc)
-    return JSONResponse(
+async def unhandled_exception_handler(request: Request, exc: Exception):
+    """Log unhandled exceptions; return safe 500 (no stack trace). Include X-Request-ID."""
+    request_id = getattr(request.state, "request_id", None)
+    logger.exception(
+        "Unhandled exception: %s",
+        exc,
+        extra={"request_id": request_id} if request_id else {},
+    )
+    response = JSONResponse(
         status_code=500,
         content={"detail": "Internal server error"},
     )
+    if request_id:
+        response.headers[REQUEST_ID_HEADER] = request_id
+    return response
 
 
 app.include_router(health.router)

@@ -37,10 +37,11 @@ def _normalize_path(path: str) -> str:
 
 
 class RequestLoggingMiddleware(BaseHTTPMiddleware):
-    """Log requests, record metrics, add X-Request-ID to response."""
+    """Log requests, record metrics, set request.state.request_id, add X-Request-ID to response."""
 
     async def dispatch(self, request: Request, call_next) -> Response:
         request_id = get_request_id(request)
+        request.state.request_id = request_id
         start = time.perf_counter()
         path = request.url.path
         method = request.method

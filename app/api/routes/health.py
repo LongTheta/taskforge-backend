@@ -23,6 +23,8 @@ def health():
     }
     if settings.git_sha:
         payload["git_sha"] = settings.git_sha
+    if settings.image_tag:
+        payload["image_tag"] = settings.image_tag
     return payload
 
 
@@ -35,5 +37,5 @@ def ready(db: DbSession):
 
 @router.get("/metrics")
 def metrics():
-    """Prometheus metrics endpoint."""
+    """Prometheus scrape endpoint. Returns text/plain."""
     return Response(content=get_metrics(), media_type="text/plain; charset=utf-8")

@@ -1,4 +1,4 @@
-"""Structured logging. JSON in prod, human-readable when DEBUG."""
+"""Structured logging. JSON when DEBUG=false (prod); human-readable when DEBUG=true."""
 
 import json
 import logging

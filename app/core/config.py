@@ -1,4 +1,4 @@
-"""Runtime configuration. Secrets from env only. Production: APP_ENV=production, DATABASE_URL, SECRET_KEY."""
+"""Runtime configuration. All settings from env; .env for local overrides. Production: APP_ENV=production, DATABASE_URL, SECRET_KEY."""
 
 from functools import lru_cache
 from typing import Literal
@@ -33,6 +33,7 @@ class Settings(BaseSettings):
     debug: bool = False
     log_level: str = "INFO"
     git_sha: str | None = None
+    image_tag: str | None = None
 
     @property
     def is_production(self) -> bool:
@@ -41,6 +42,14 @@ class Settings(BaseSettings):
     @property
     def is_secure_secret(self) -> bool:
         return self.secret_key not in INSECURE_SECRET_KEYS
+
+    def validate_production(self) -> None:
+        """Raise if production mode has insecure configuration."""
+        if not self.is_production:
+            return
+        if not self.is_secure_secret:
+            msg = "Production requires a secure SECRET_KEY. Generate with: openssl rand -hex 32"
+            raise ValueError(msg)
 
 
 @lru_cache

@@ -11,6 +11,7 @@ env:
 
 jobs:
   lint:
+    name: Lint
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -23,6 +24,7 @@ jobs:
       - run: git diff --exit-code
 
   test:
+    name: Test
     runs-on: ubuntu-latest
     env:
       DATABASE_URL: sqlite:///./test.db
@@ -37,6 +39,7 @@ jobs:
       - run: pytest tests/ -v
 
   security:
+    name: Security
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -45,10 +48,11 @@ jobs:
           python-version: ${{ env.PYTHON_VERSION }}
       - run: pip install -e ".[dev]"
       - run: bandit -r app -c pyproject.toml
-      # --skip-editable: skip local taskforge-backend; CVE-2024-23342: ecdsa timing attack, we use HS256 not ECDSA
       - run: pip-audit --skip-editable --ignore-vuln CVE-2024-23342
+        # skip-editable: local pkg; CVE-2024-23342: ecdsa, we use HS256
 
   docker:
+    name: Docker
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

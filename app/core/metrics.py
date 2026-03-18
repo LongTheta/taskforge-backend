@@ -21,5 +21,5 @@ REQUESTS_IN_PROGRESS = Gauge(
 
 
 def get_metrics() -> bytes:
-    """Return Prometheus metrics in text format."""
+    """Return Prometheus exposition format (text/plain)."""
     return generate_latest()

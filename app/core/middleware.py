@@ -63,9 +63,7 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
         duration_ms = duration * 1000
 
         REQUESTS_IN_PROGRESS.labels(method=method, path=path_label).dec()
-        REQUESTS_TOTAL.labels(
-            method=method, path=path_label, status=str(status_code)
-        ).inc()
+        REQUESTS_TOTAL.labels(method=method, path=path_label, status=str(status_code)).inc()
         REQUEST_DURATION.labels(method=method, path=path_label).observe(duration)
 
         if path not in ("/health", "/ready", "/metrics") or status_code >= 400:

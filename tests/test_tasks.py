@@ -61,7 +61,9 @@ def test_get_task_not_found(client, auth_headers):
 
 def test_update_task(client, auth_headers):
     """Update a task."""
-    create = client.post("/api/v1/tasks", headers=auth_headers, json={"title": "Original", "status": "todo"})
+    create = client.post(
+        "/api/v1/tasks", headers=auth_headers, json={"title": "Original", "status": "todo"}
+    )
     task_id = create.json()["id"]
     resp = client.patch(
         f"/api/v1/tasks/{task_id}",
@@ -87,7 +89,9 @@ def test_task_user_scoping(client, auth_headers):
     """User A cannot access User B's task."""
     # Create user A and task
     client.post("/api/v1/auth/register", json={"email": "a@example.com", "password": "pass12345"})
-    login_a = client.post("/api/v1/auth/login", json={"email": "a@example.com", "password": "pass12345"})
+    login_a = client.post(
+        "/api/v1/auth/login", json={"email": "a@example.com", "password": "pass12345"}
+    )
     headers_a = {"Authorization": f"Bearer {login_a.json()['access_token']}"}
     create = client.post("/api/v1/tasks", headers=headers_a, json={"title": "A's task"})
     task_id = create.json()["id"]

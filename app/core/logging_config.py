@@ -19,9 +19,7 @@ def configure_logging() -> None:
     handler.setLevel(level)
 
     if settings.debug:
-        formatter = logging.Formatter(
-            "%(asctime)s | %(levelname)s | %(name)s | %(message)s"
-        )
+        formatter = logging.Formatter("%(asctime)s | %(levelname)s | %(name)s | %(message)s")
     else:
         formatter = JsonFormatter()
 

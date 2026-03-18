@@ -1,10 +1,11 @@
 """Task schemas."""
 
+from __future__ import annotations
+
 from datetime import date, datetime
 from typing import Literal
 
 from pydantic import BaseModel, Field
-
 
 TaskStatus = Literal["todo", "in_progress", "done"]
 TaskPriority = Literal["low", "medium", "high"]

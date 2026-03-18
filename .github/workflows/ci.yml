@@ -18,8 +18,9 @@ jobs:
         with:
           python-version: ${{ env.PYTHON_VERSION }}
       - run: pip install -e ".[dev]"
-      - run: ruff check app tests
-      - run: ruff format --check app tests
+      - run: ruff check app tests --fix
+      - run: ruff format app tests
+      - run: git diff --exit-code
 
   test:
     runs-on: ubuntu-latest

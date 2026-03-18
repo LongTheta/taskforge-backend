@@ -7,11 +7,13 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 APP_VERSION = "0.1.0"
 
-INSECURE_SECRET_KEYS = frozenset({
-    "change-me-in-production",
-    "your-secret-key-change-in-production",
-    "dev-secret-key-change-in-production",
-})
+INSECURE_SECRET_KEYS = frozenset(
+    {
+        "change-me-in-production",
+        "your-secret-key-change-in-production",
+        "dev-secret-key-change-in-production",
+    }
+)
 
 
 class Settings(BaseSettings):

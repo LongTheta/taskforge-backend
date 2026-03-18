@@ -56,7 +56,11 @@ def client(db_session):
 @pytest.fixture
 def auth_headers(client):
     """Register, login, and return auth headers."""
-    client.post("/api/v1/auth/register", json={"email": "test@example.com", "password": "testpass123"})
-    resp = client.post("/api/v1/auth/login", json={"email": "test@example.com", "password": "testpass123"})
+    client.post(
+        "/api/v1/auth/register", json={"email": "test@example.com", "password": "testpass123"}
+    )
+    resp = client.post(
+        "/api/v1/auth/login", json={"email": "test@example.com", "password": "testpass123"}
+    )
     token = resp.json()["access_token"]
     return {"Authorization": f"Bearer {token}"}

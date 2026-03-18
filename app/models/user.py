@@ -23,5 +23,9 @@ class User(Base, TimestampMixin):
     hashed_password: Mapped[str] = mapped_column(String(255), nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
 
-    tasks: Mapped[list["Task"]] = relationship("Task", back_populates="user", cascade="all, delete-orphan")
-    notes: Mapped[list["Note"]] = relationship("Note", back_populates="user", cascade="all, delete-orphan")
+    tasks: Mapped[list["Task"]] = relationship(
+        "Task", back_populates="user", cascade="all, delete-orphan"
+    )
+    notes: Mapped[list["Note"]] = relationship(
+        "Note", back_populates="user", cascade="all, delete-orphan"
+    )

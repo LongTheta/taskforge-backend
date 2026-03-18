@@ -27,7 +27,9 @@ def test_list_notes(client, auth_headers):
 
 def test_get_note(client, auth_headers):
     """Get note by ID."""
-    create = client.post("/api/v1/notes", headers=auth_headers, json={"title": "Get me", "content": "Body"})
+    create = client.post(
+        "/api/v1/notes", headers=auth_headers, json={"title": "Get me", "content": "Body"}
+    )
     note_id = create.json()["id"]
     resp = client.get(f"/api/v1/notes/{note_id}", headers=auth_headers)
     assert resp.status_code == 200
@@ -42,7 +44,9 @@ def test_get_note_not_found(client, auth_headers):
 
 def test_update_note(client, auth_headers):
     """Update a note."""
-    create = client.post("/api/v1/notes", headers=auth_headers, json={"title": "Original", "content": "Old"})
+    create = client.post(
+        "/api/v1/notes", headers=auth_headers, json={"title": "Original", "content": "Old"}
+    )
     note_id = create.json()["id"]
     resp = client.patch(
         f"/api/v1/notes/{note_id}",
@@ -56,7 +60,9 @@ def test_update_note(client, auth_headers):
 
 def test_delete_note(client, auth_headers):
     """Delete a note."""
-    create = client.post("/api/v1/notes", headers=auth_headers, json={"title": "To delete", "content": "X"})
+    create = client.post(
+        "/api/v1/notes", headers=auth_headers, json={"title": "To delete", "content": "X"}
+    )
     note_id = create.json()["id"]
     resp = client.delete(f"/api/v1/notes/{note_id}", headers=auth_headers)
     assert resp.status_code == 204
@@ -67,9 +73,13 @@ def test_delete_note(client, auth_headers):
 def test_note_user_scoping(client, auth_headers):
     """User A cannot access User B's note."""
     client.post("/api/v1/auth/register", json={"email": "b@example.com", "password": "pass12345"})
-    login_b = client.post("/api/v1/auth/login", json={"email": "b@example.com", "password": "pass12345"})
+    login_b = client.post(
+        "/api/v1/auth/login", json={"email": "b@example.com", "password": "pass12345"}
+    )
     headers_b = {"Authorization": f"Bearer {login_b.json()['access_token']}"}
-    create = client.post("/api/v1/notes", headers=headers_b, json={"title": "B's note", "content": "Secret"})
+    create = client.post(
+        "/api/v1/notes", headers=headers_b, json={"title": "B's note", "content": "Secret"}
+    )
     note_id = create.json()["id"]
 
     resp = client.get(f"/api/v1/notes/{note_id}", headers=auth_headers)

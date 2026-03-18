@@ -15,10 +15,9 @@ def test_admin_stats_forbidden_for_user(client, auth_headers):
 
 def test_admin_stats_success(client, db_session):
     """Admin stats with admin user returns 200 and counts."""
-    from app.models.user import User
-
     # Create admin user directly (bypass register to set role)
     from app.core.security import hash_password
+    from app.models.user import User
 
     admin_user = User(
         email="admin@example.com",

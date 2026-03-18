@@ -5,8 +5,8 @@ import logging
 import threading
 from datetime import UTC, datetime
 from typing import Any
+from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
-from urllib.error import URLError, HTTPError
 
 from app.core.config import get_settings
 

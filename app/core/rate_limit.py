@@ -22,7 +22,11 @@ def _rate_limit_key(request: Request) -> str:
 def get_limiter() -> Limiter:
     """Return limiter. Set RATE_LIMIT_ENABLED=false to use very high limits (e.g. in tests)."""
     settings = get_settings()
-    limit = f"{settings.rate_limit_api_per_minute}/minute" if settings.rate_limit_enabled else "10000/minute"
+    limit = (
+        f"{settings.rate_limit_api_per_minute}/minute"
+        if settings.rate_limit_enabled
+        else "10000/minute"
+    )
     return Limiter(
         key_func=_rate_limit_key,
         default_limits=[limit],

@@ -13,6 +13,8 @@ deploy/
 │       └── prod/       # taskforge-prod namespace, 2 replicas
 ├── argocd/
 │   └── application.yaml   # Example ArgoCD Application
+├── examples/
+│   └── argocd-application.yaml   # Same example, generic placement
 └── README.md
 ```
 
@@ -40,7 +42,7 @@ kubectl create secret generic taskforge-backend-secrets \
 3. **Update overlay:** Set `images[].newTag` in overlay `kustomization.yaml` to the new SHA
 4. **Sync:** ArgoCD detects the change and syncs the Application
 
-**Example Application:** `deploy/argocd/application.yaml` points at `deploy/kustomize/overlays/dev`. Adjust `repoURL`, `path`, and `targetRevision` for your setup.
+**Example Application:** `deploy/argocd/application.yaml` or `deploy/examples/argocd-application.yaml` points at `deploy/kustomize/overlays/dev`. Adjust `repoURL`, `path`, and `targetRevision` for your setup.
 
 **Image update options:**
 - Manual: Update overlay, commit, push

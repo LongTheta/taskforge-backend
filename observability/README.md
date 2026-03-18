@@ -27,6 +27,8 @@ Starter assets for Prometheus, Grafana, and Loki integration.
 
 ## Loki / Log Labels
 
+See `loki-labeling-guidance.md` for detailed LogQL examples and label recommendations.
+
 Structured JSON logs include fields suitable for Loki:
 
 | Field | Use |

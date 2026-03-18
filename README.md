@@ -4,7 +4,9 @@
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.109+-green.svg)](https://fastapi.tiangolo.com/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-A production-style FastAPI backend for **TaskForge** — tasks, notes, users, and JWT auth. Designed as a reference service for platform engineering, DevSecOps, observability, and GitOps demos.
+**TaskForge** is a task and notes management platform — users can register, log in, create tasks with status/priority, and organize notes. This repo is the backend API for TaskForge.
+
+A production-style FastAPI service with JWT auth, designed as a reference for platform engineering, DevSecOps, observability, and GitOps demos.
 
 ---
 
@@ -76,7 +78,8 @@ taskforge-backend/
 ├── alembic/              # Migrations
 ├── deploy/               # GitOps manifests
 │   ├── kustomize/        # base + overlays (dev, prod)
-│   └── argocd/           # ArgoCD Application example
+│   ├── argocd/           # ArgoCD Application example
+│   └── examples/         # Generic example manifests
 ├── observability/        # Grafana dashboard, Prometheus config, Loki guidance
 ├── tests/
 ├── .github/workflows/    # CI
@@ -171,6 +174,7 @@ Tests use SQLite. `conftest.py` sets `DATABASE_URL`, `SECRET_KEY`, `APP_ENV`.
 | `ACCESS_TOKEN_EXPIRE_MINUTES` | No | Default: 30 |
 | `DEBUG` | No | Default: false |
 | `LOG_LEVEL` | No | Default: INFO |
+| `APP_VERSION` | No | Version override (CI injects from build) |
 | `GIT_SHA` | No | Build metadata (set by CI) |
 | `IMAGE_TAG` | No | Image tag (set by CI) |
 
@@ -205,17 +209,21 @@ Tests use SQLite. `conftest.py` sets `DATABASE_URL`, `SECRET_KEY`, `APP_ENV`.
 | **Request IDs** | `X-Request-ID` in request/response; accepts client value or generates one |
 | **Error visibility** | Unhandled exceptions logged; clients receive generic 500 |
 
-**Grafana/Prometheus:** See `observability/README.md`. Import `observability/grafana/taskforge-overview.json` for request rate, latency, error rate, in-progress requests, and build info.
+**Grafana/Prometheus/Loki:** See `observability/README.md`. Import `observability/grafana/taskforge-overview.json` for dashboards. `observability/loki-labeling-guidance.md` for LogQL and label guidance.
 
 ---
 
 ## 11. GitOps Readiness
 
 - **Kustomize:** `deploy/kustomize/base` + overlays `dev`, `prod`. Apply with `kubectl apply -k deploy/kustomize/overlays/dev`.
-- **ArgoCD:** Example Application in `deploy/argocd/application.yaml`. Points at overlay path; ArgoCD syncs on commit.
-- **Image tagging:** CI builds with commit SHA. Update overlay `images[].newTag` when promoting.
+- **ArgoCD:** Example Application in `deploy/argocd/application.yaml` or `deploy/examples/argocd-application.yaml`. Points at overlay path; ArgoCD syncs on commit.
 - **Flow:** Build → tag with SHA → publish to registry → update overlay → ArgoCD sync.
-- **Deployment metadata:** `APP_ENV`, `APP_VERSION`, `GIT_SHA`, `IMAGE_TAG` in ConfigMap/env; exposed in `/health`, `/info`, `taskforge_build_info` metric.
+
+**Image tagging strategy:** CI builds with commit SHA (e.g. `abc1234`). Use immutable tags only; avoid `latest`. Update overlay `images[].newTag` in `kustomization.yaml` when promoting.
+
+**Environment promotion strategy:** Same image tag flows dev → stage → prod. Overlays differ by namespace, replicas, and LOG_LEVEL. Configure `production` environment in GitHub for manual approval before prod deploy.
+
+**Deployment metadata:** `APP_ENV`, `APP_VERSION`, `GIT_SHA`, `IMAGE_TAG` in ConfigMap/env; exposed in `/health`, `/info`, `taskforge_build_info` metric.
 
 ---
 
@@ -258,6 +266,7 @@ GitHub Actions runs on push/PR to `main`:
 | PATCH | `/api/v1/notes/{id}` | Update note |
 | DELETE | `/api/v1/notes/{id}` | Delete note |
 | GET | `/health` | Liveness |
+| GET | `/info` | Deployment metadata (version, env, git_sha, image_tag) |
 | GET | `/ready` | Readiness |
 | GET | `/metrics` | Prometheus metrics |
 

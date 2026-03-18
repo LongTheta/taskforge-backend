@@ -1,7 +1,5 @@
 """Health and metrics endpoint tests."""
 
-import pytest
-
 
 def test_health(client):
     """Health endpoint returns ok with service info."""

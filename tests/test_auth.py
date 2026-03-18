@@ -1,7 +1,5 @@
 """Authentication tests."""
 
-import pytest
-
 
 def test_register_success(client):
     """Register a new user."""

@@ -1,7 +1,5 @@
 """Note CRUD tests."""
 
-import pytest
-
 
 def test_create_note(client, auth_headers):
     """Create a note."""

@@ -1,7 +1,5 @@
 """Task CRUD tests."""
 
-import pytest
-
 
 def test_create_task(client, auth_headers):
     """Create a task."""

@@ -25,9 +25,19 @@ def create_task(db: Session, user: User, data: TaskCreate) -> Task:
     return task
 
 
-def get_tasks(db: Session, user: User) -> list[Task]:
-    """List all tasks for the user."""
-    return db.query(Task).filter(Task.user_id == user.id).order_by(Task.created_at.desc()).all()
+def get_tasks(
+    db: Session,
+    user: User,
+    status: str | None = None,
+    priority: str | None = None,
+) -> list[Task]:
+    """List all tasks for the user, optionally filtered by status and/or priority."""
+    q = db.query(Task).filter(Task.user_id == user.id)
+    if status:
+        q = q.filter(Task.status == status)
+    if priority:
+        q = q.filter(Task.priority == priority)
+    return q.order_by(Task.created_at.desc()).all()
 
 
 def get_task_by_id(db: Session, task_id: int, user: User) -> Task | None:

@@ -1,4 +1,8 @@
-"""FastAPI dependencies for auth and database."""
+"""FastAPI dependencies for auth and database.
+
+Protected routes use CurrentUser; unauthenticated requests return 401.
+All task/note access is user-scoped via or_404 + service-layer filtering.
+"""
 
 from typing import Annotated, TypeVar
 

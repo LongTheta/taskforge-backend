@@ -1,4 +1,9 @@
-"""Application configuration from environment variables."""
+"""Application configuration from environment variables.
+
+All secrets must come from env vars. Never hardcode secrets.
+Local dev: defaults are acceptable when DEBUG=true or DATABASE_URL points to localhost.
+Production: set DATABASE_URL, SECRET_KEY explicitly.
+"""
 
 from functools import lru_cache
 
@@ -14,10 +19,10 @@ class Settings(BaseSettings):
         case_sensitive=False,
     )
 
-    # Database
+    # Database - REQUIRED in production. Default for local dev only.
     database_url: str = "postgresql://taskforge:taskforge@localhost:5432/taskforge"
 
-    # Security
+    # Security - REQUIRED in production. Generate: openssl rand -hex 32
     secret_key: str = "change-me-in-production"
     jwt_algorithm: str = "HS256"
     access_token_expire_minutes: int = 30

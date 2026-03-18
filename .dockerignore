@@ -1,0 +1,37 @@
+# Git
+.git
+.gitignore
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__
+*.py[cod]
+*$py.class
+*.so
+.venv
+venv
+env
+
+# Testing
+.pytest_cache
+test.db
+.coverage
+htmlcov
+.tox
+.nox
+
+# IDE
+.idea
+.vscode
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docs / misc
+*.md
+!README.md

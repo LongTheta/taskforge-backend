@@ -28,6 +28,17 @@ def test_list_tasks(client, auth_headers):
     assert len(resp.json()) == 2
 
 
+def test_list_tasks_filter_by_status(client, auth_headers):
+    """List tasks filtered by status."""
+    client.post("/api/v1/tasks", headers=auth_headers, json={"title": "Todo 1", "status": "todo"})
+    client.post("/api/v1/tasks", headers=auth_headers, json={"title": "Done 1", "status": "done"})
+    resp = client.get("/api/v1/tasks?status=todo", headers=auth_headers)
+    assert resp.status_code == 200
+    tasks = resp.json()
+    assert len(tasks) == 1
+    assert tasks[0]["status"] == "todo"
+
+
 def test_list_tasks_empty(client, auth_headers):
     """List tasks when none exist."""
     resp = client.get("/api/v1/tasks", headers=auth_headers)
@@ -77,8 +88,8 @@ def test_delete_task(client, auth_headers):
 def test_task_user_scoping(client, auth_headers):
     """User A cannot access User B's task."""
     # Create user A and task
-    client.post("/api/v1/auth/register", json={"email": "a@example.com", "password": "pass"})
-    login_a = client.post("/api/v1/auth/login", json={"email": "a@example.com", "password": "pass"})
+    client.post("/api/v1/auth/register", json={"email": "a@example.com", "password": "pass12345"})
+    login_a = client.post("/api/v1/auth/login", json={"email": "a@example.com", "password": "pass12345"})
     headers_a = {"Authorization": f"Bearer {login_a.json()['access_token']}"}
     create = client.post("/api/v1/tasks", headers=headers_a, json={"title": "A's task"})
     task_id = create.json()["id"]

@@ -68,8 +68,8 @@ def test_delete_note(client, auth_headers):
 
 def test_note_user_scoping(client, auth_headers):
     """User A cannot access User B's note."""
-    client.post("/api/v1/auth/register", json={"email": "b@example.com", "password": "pass"})
-    login_b = client.post("/api/v1/auth/login", json={"email": "b@example.com", "password": "pass"})
+    client.post("/api/v1/auth/register", json={"email": "b@example.com", "password": "pass12345"})
+    login_b = client.post("/api/v1/auth/login", json={"email": "b@example.com", "password": "pass12345"})
     headers_b = {"Authorization": f"Bearer {login_b.json()['access_token']}"}
     create = client.post("/api/v1/notes", headers=headers_b, json={"title": "B's note", "content": "Secret"})
     note_id = create.json()["id"]

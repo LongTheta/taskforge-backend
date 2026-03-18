@@ -140,7 +140,7 @@ jobs:
           cache-to: type=gha,mode=max
         env:
           DOCKER_BUILDKIT: 1
-      - uses: sigstore/cosign-installer@11bd71901bbe5b1630ceea73d27597364c9af683  # v4
+      - uses: sigstore/cosign-installer@v4
       - name: Sign container image (keyless)
         env:
           COSIGN_EXPERIMENTAL: "true"

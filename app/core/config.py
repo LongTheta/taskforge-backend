@@ -34,6 +34,7 @@ class Settings(BaseSettings):
     log_level: str = "INFO"
     git_sha: str | None = None
     image_tag: str | None = None
+    app_version: str | None = None  # Override APP_VERSION; CI injects from build
 
     @property
     def is_production(self) -> bool:

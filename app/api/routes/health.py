@@ -11,14 +11,14 @@ from app.core.metrics import get_metrics
 router = APIRouter(tags=["health"])
 
 
-@router.get("/health")
-def health():
-    """Liveness probe - returns 200 if the app is running."""
+def _health_payload():
+    """Shared payload for /health and /info."""
     settings = get_settings()
+    version = settings.app_version or APP_VERSION
     payload: dict = {
         "status": "ok",
         "service": "taskforge-backend",
-        "version": APP_VERSION,
+        "version": version,
         "env": settings.app_env,
     }
     if settings.git_sha:
@@ -26,6 +26,18 @@ def health():
     if settings.image_tag:
         payload["image_tag"] = settings.image_tag
     return payload
+
+
+@router.get("/health")
+def health():
+    """Liveness probe - returns 200 if the app is running."""
+    return _health_payload()
+
+
+@router.get("/info")
+def info():
+    """Deployment metadata - version, env, git_sha, image_tag. Same as /health."""
+    return _health_payload()
 
 
 @router.get("/ready")

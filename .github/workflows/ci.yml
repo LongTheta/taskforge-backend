@@ -112,9 +112,11 @@ jobs:
     environment: production  # Requires approval if configured in repo Settings > Environments
     if: github.event_name == 'workflow_dispatch' || (github.ref == 'refs/heads/main' && github.event_name == 'push')
     # Runs after CI passes; blocks on environment approval before placeholder step
+    # GitOps flow: build image with SHA tag → publish to registry → update overlay image ref → ArgoCD sync
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
       - run: |
           echo "Promotion gate passed. Image ready for production deploy."
           echo "GIT_SHA=${{ github.sha }}"
+          echo "IMAGE_TAG=$(echo ${{ github.sha }} | cut -c1-7)"
           echo "Configure repo Environment 'production' with required reviewers for approval."

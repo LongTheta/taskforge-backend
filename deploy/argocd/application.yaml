@@ -1,0 +1,24 @@
+# Example ArgoCD Application - deploy taskforge-backend from this repo
+# Adjust repo URL, path, and targetRevision for your setup
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: taskforge-backend
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/LongTheta/taskforge-backend.git
+    path: deploy/kustomize/overlays/dev
+    targetRevision: main
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: taskforge-dev
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

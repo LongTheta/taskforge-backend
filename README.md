@@ -39,6 +39,10 @@ A production-style FastAPI backend for **TaskForge** — tasks, notes, users, an
 | GitOps deployment metadata | ✅ |
 | Manual promotion gate (placeholder) | ✅ |
 | Build provenance attestation (SLSA-style) | ✅ |
+| Kustomize base + overlays (dev/prod) | ✅ |
+| ArgoCD Application example | ✅ |
+| Grafana dashboard + Prometheus config | ✅ |
+| Deployment metadata (/info, build_info metric) | ✅ |
 
 ---
 
@@ -70,7 +74,10 @@ taskforge-backend/
 │   ├── services/         # Business logic
 │   └── db/               # Base, mixins
 ├── alembic/              # Migrations
-├── deploy/               # GitOps deployment docs
+├── deploy/               # GitOps manifests
+│   ├── kustomize/        # base + overlays (dev, prod)
+│   └── argocd/           # ArgoCD Application example
+├── observability/        # Grafana dashboard, Prometheus config, Loki guidance
 ├── tests/
 ├── .github/workflows/    # CI
 ├── Dockerfile            # dev + prod targets
@@ -191,20 +198,24 @@ Tests use SQLite. `conftest.py` sets `DATABASE_URL`, `SECRET_KEY`, `APP_ENV`.
 | Feature | Implementation |
 |---------|----------------|
 | **Health** | `/health` — status, version, env, optional git_sha, image_tag |
+| **Info** | `/info` — same as health (deployment metadata) |
 | **Readiness** | `/ready` — DB connectivity check |
-| **Metrics** | `/metrics` — Prometheus: `http_requests_total`, `http_request_duration_seconds`, `http_requests_in_progress` |
-| **Structured logging** | JSON in prod, human-readable when DEBUG |
-| **Request IDs** | `X-Request-ID` in request/response; accepts client value or generates one; stored in `request.state` |
+| **Metrics** | `/metrics` — Prometheus: `http_requests_total`, `http_request_duration_seconds`, `http_requests_in_progress`, `taskforge_build_info` |
+| **Structured logging** | JSON in prod with service, version, env for Loki correlation |
+| **Request IDs** | `X-Request-ID` in request/response; accepts client value or generates one |
 | **Error visibility** | Unhandled exceptions logged; clients receive generic 500 |
+
+**Grafana/Prometheus:** See `observability/README.md`. Import `observability/grafana/taskforge-overview.json` for request rate, latency, error rate, in-progress requests, and build info.
 
 ---
 
 ## 11. GitOps Readiness
 
-- **Immutable tags:** Use version or commit SHA for images; document in `deploy/README.md`.
-- **Config strategy:** Env vars for local, dev, stage, prod; no baked-in secrets.
-- **Deployment metadata:** `APP_ENV`, `GIT_SHA`, `IMAGE_TAG` exposed in `/health`.
-- **Future:** Helm/Kustomize, ArgoCD, promotion pipelines — see `deploy/README.md`.
+- **Kustomize:** `deploy/kustomize/base` + overlays `dev`, `prod`. Apply with `kubectl apply -k deploy/kustomize/overlays/dev`.
+- **ArgoCD:** Example Application in `deploy/argocd/application.yaml`. Points at overlay path; ArgoCD syncs on commit.
+- **Image tagging:** CI builds with commit SHA. Update overlay `images[].newTag` when promoting.
+- **Flow:** Build → tag with SHA → publish to registry → update overlay → ArgoCD sync.
+- **Deployment metadata:** `APP_ENV`, `APP_VERSION`, `GIT_SHA`, `IMAGE_TAG` in ConfigMap/env; exposed in `/health`, `/info`, `taskforge_build_info` metric.
 
 ---
 
@@ -260,15 +271,16 @@ GitHub Actions runs on push/PR to `main`:
 - [ ] Rate limiting
 - [ ] RBAC
 - [ ] Audit logging
-- [ ] Helm/Kustomize manifests
-- [ ] ArgoCD integration
+- [ ] Image publish to registry (ghcr.io, ECR)
+- [ ] ArgoCD Image Updater or CI-driven overlay updates
 
 **Later:**
 
 - [ ] OpenTelemetry tracing
 - [ ] CodeQL, Trivy container scanning
-- [ ] Container image attestation (requires registry push; use `attest-build-provenance` with `push-to-registry`)
+- [ ] Container image attestation (requires registry push)
 - [ ] cosign/signing for critical artifacts (optional hardening)
+- [ ] Helm chart (if Kustomize complexity grows)
 
 ---
 

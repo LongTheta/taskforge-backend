@@ -1,0 +1,21 @@
+# Example Prometheus scrape config for TaskForge Backend
+# Add to your Prometheus scrape_configs or use with a ServiceMonitor in Kubernetes
+#
+# For Kubernetes: use a ServiceMonitor or PodMonitor, or static config pointing at
+# the taskforge-backend Service (e.g. http://taskforge-backend.taskforge-prod:8000/metrics)
+
+scrape_configs:
+  - job_name: taskforge-backend
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["localhost:8000"]
+        labels:
+          service: taskforge-backend
+          env: local
+    # For Kubernetes (adjust namespace/host as needed):
+    # - targets: ["taskforge-backend.taskforge-prod.svc.cluster.local:8000"]
+    #   labels:
+    #     service: taskforge-backend
+    #     env: production
+    scrape_interval: 15s
+    scrape_timeout: 10s

@@ -12,6 +12,17 @@ def test_health(client):
     assert data["env"] == "test"
 
 
+def test_info(client):
+    """Info endpoint returns same deployment metadata as health."""
+    resp = client.get("/info")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["status"] == "ok"
+    assert data["service"] == "taskforge-backend"
+    assert "version" in data
+    assert data["env"] == "test"
+
+
 def test_ready(client):
     """Ready endpoint checks database connectivity."""
     resp = client.get("/ready")

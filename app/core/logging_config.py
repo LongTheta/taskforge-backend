@@ -4,7 +4,18 @@ import json
 import logging
 import sys
 
-from app.core.config import get_settings
+from app.core.config import APP_VERSION, get_settings
+
+
+class DeploymentContextFilter(logging.Filter):
+    """Inject service, version, env into log records for Loki correlation."""
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        settings = get_settings()
+        record.service = "taskforge-backend"
+        record.version = settings.app_version or APP_VERSION
+        record.env = settings.app_env
+        return True
 
 
 def configure_logging() -> None:
@@ -25,6 +36,8 @@ def configure_logging() -> None:
 
     handler.setFormatter(formatter)
     root.addHandler(handler)
+    if not settings.debug:
+        root.addFilter(DeploymentContextFilter())
 
 
 class JsonFormatter(logging.Formatter):
@@ -39,6 +52,12 @@ class JsonFormatter(logging.Formatter):
         }
         if hasattr(record, "request_id"):
             log_data["request_id"] = record.request_id
+        if hasattr(record, "service"):
+            log_data["service"] = record.service
+        if hasattr(record, "version"):
+            log_data["version"] = record.version
+        if hasattr(record, "env"):
+            log_data["env"] = record.env
         if hasattr(record, "method"):
             log_data["method"] = record.method
         if hasattr(record, "path"):

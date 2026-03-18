@@ -1,53 +1,78 @@
 # TaskForge Backend — GitOps Deployment
 
-This directory documents how TaskForge Backend fits into a GitOps deployment model.
+This directory contains GitOps-ready manifests and documentation for deploying TaskForge Backend.
+
+## Kustomize Structure
+
+```
+deploy/
+├── kustomize/
+│   ├── base/           # Deployment, Service, ConfigMap, Secret
+│   └── overlays/
+│       ├── dev/        # taskforge-dev namespace, DEBUG logs
+│       └── prod/       # taskforge-prod namespace, 2 replicas
+├── argocd/
+│   └── application.yaml   # Example ArgoCD Application
+└── README.md
+```
+
+**Apply:**
+```bash
+# Dev
+kubectl apply -k deploy/kustomize/overlays/dev
+
+# Prod (update image tag in kustomization.yaml first)
+kubectl apply -k deploy/kustomize/overlays/prod
+```
+
+**Prerequisites:** Create the secret before applying:
+```bash
+kubectl create secret generic taskforge-backend-secrets \
+  --from-literal=DATABASE_URL='postgresql://user:pass@host:5432/db' \
+  --from-literal=SECRET_KEY="$(openssl rand -hex 32)" \
+  -n taskforge-prod
+```
+
+## ArgoCD Workflow
+
+1. **Build:** CI builds image, tags with commit SHA (e.g. `taskforge-backend:abc1234`)
+2. **Publish:** Push image to registry (ghcr.io, ECR, etc.)
+3. **Update overlay:** Set `images[].newTag` in overlay `kustomization.yaml` to the new SHA
+4. **Sync:** ArgoCD detects the change and syncs the Application
+
+**Example Application:** `deploy/argocd/application.yaml` points at `deploy/kustomize/overlays/dev`. Adjust `repoURL`, `path`, and `targetRevision` for your setup.
+
+**Image update options:**
+- Manual: Update overlay, commit, push
+- ArgoCD Image Updater: Automate image tag updates
+- CI step: After promote, update overlay and push (GitOps push model)
 
 ## Deployment Metadata
-
-The app supports environment-driven metadata via env vars:
 
 | Variable    | Description              | Example        |
 |-------------|--------------------------|----------------|
 | `APP_ENV`   | Environment mode         | `production`   |
+| `APP_VERSION`| Version override (optional) | `0.1.0`    |
 | `GIT_SHA`   | Git commit SHA (CI)      | `abc1234`      |
-| `IMAGE_TAG` | Container image tag (CI)  | `0.1.0` or `abc1234` |
+| `IMAGE_TAG` | Container image tag (CI) | `abc1234`      |
 
-Version comes from the package; `GIT_SHA` and `IMAGE_TAG` are optional env overrides. All are exposed in `/health` (non-sensitive only).
+Set via ConfigMap or env. Exposed in `/health` and `/info`.
 
 ## Immutable Builds
 
-- **Image tags:** Use version or commit SHA, not `latest`:
-  - `taskforge-backend:0.1.0`
-  - `taskforge-backend:abc1234`
-- **Config:** Environment-specific config via env vars; no baked-in secrets.
+- **Image tags:** Use commit SHA, not `latest`
+- **Config:** Env vars; no baked-in secrets
+- **Promotion:** Same image tag through dev → stage → prod
 
-## Config Separation
+## Environment Separation
 
-| Environment | Config Source        | Typical Use |
-|-------------|----------------------|-------------|
-| **local**   | `.env`               | Development |
-| **dev**     | Env vars / ConfigMap | Dev cluster |
-| **stage**   | Env vars / ConfigMap | Staging     |
-| **prod**    | Env vars / Secret    | Production  |
+| Overlay | Namespace      | Replicas | LOG_LEVEL |
+|---------|----------------|----------|-----------|
+| dev     | taskforge-dev  | 1        | DEBUG     |
+| prod    | taskforge-prod | 2        | INFO      |
 
-## CI/CD Supply Chain
+## Future
 
-- **Actions:** Pinned by full 40-char SHA.
-- **SBOM:** CycloneDX JSON generated in CI; artifact `sbom`.
-- **Build metadata:** `build-metadata` artifact with `git_sha`, `image_tag`, `version`.
-- **Promotion gate:** `promote` job uses `production` environment; configure required reviewers in Settings → Environments.
-
-## Future GitOps
-
-- **Helm:** Chart could wrap app, env vars, and probes.
-- **Kustomize:** Base + overlays per environment.
-- **ArgoCD:** Application manifests pointing at Git repo.
-- **Promotion:** Promote same image tag through dev → stage → prod.
-
-## Docker Build
-
-```bash
-docker build --target prod -t taskforge-backend:0.1.0 .
-```
-
-Set `GIT_SHA` and `IMAGE_TAG` as runtime env vars for deployment traceability.
+- Helm chart (if complexity grows)
+- ArgoCD Image Updater integration
+- Promotion workflow automation

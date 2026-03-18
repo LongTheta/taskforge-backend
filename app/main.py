@@ -20,6 +20,15 @@ async def lifespan(app: FastAPI):
     configure_logging()
     settings = get_settings()
     settings.validate_production()
+    version = settings.app_version or APP_VERSION
+    logger.info(
+        "TaskForge starting",
+        extra={
+            "version": version,
+            "env": settings.app_env,
+            "git_sha": settings.git_sha or "(not set)",
+        },
+    )
     yield
 
 
@@ -35,7 +44,7 @@ app = FastAPI(
         {"name": "users", "description": "Current user profile"},
         {"name": "tasks", "description": "Task CRUD with status/priority"},
         {"name": "notes", "description": "Note CRUD"},
-        {"name": "health", "description": "Liveness, readiness, metrics"},
+        {"name": "health", "description": "Liveness, readiness, info, metrics"},
     ],
 )
 

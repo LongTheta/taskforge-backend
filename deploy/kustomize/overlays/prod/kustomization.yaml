@@ -1,0 +1,28 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: taskforge-prod
+
+resources:
+  - ../../base
+
+images:
+  - name: taskforge-backend
+    newName: taskforge-backend
+    newTag: "PLACEHOLDER_TAG"  # ArgoCD/CI updates to commit SHA
+
+patches:
+  - target:
+      kind: ConfigMap
+      name: taskforge-backend-config
+    patch: |-
+      - op: replace
+        path: /data/APP_ENV
+        value: "production"
+      - op: replace
+        path: /data/LOG_LEVEL
+        value: "INFO"
+
+replicas:
+  - name: taskforge-backend
+    count: 2

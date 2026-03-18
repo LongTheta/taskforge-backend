@@ -51,9 +51,35 @@ A production-style FastAPI service with JWT auth, designed as a reference for pl
 
 ## 3. Architecture Overview
 
-```
-Client → FastAPI → Middleware (logging, metrics, request ID)
-                → Routes → Services → SQLAlchemy → PostgreSQL
+```mermaid
+flowchart TB
+    subgraph Client
+        C[Client]
+    end
+
+    subgraph App["TaskForge Backend"]
+        direction TB
+        M[Middleware: logging, metrics, request ID]
+        R[Routes: auth, users, tasks, notes, health]
+        S[Services]
+        M --> R --> S
+    end
+
+    subgraph Data
+        DB[(PostgreSQL)]
+    end
+
+    subgraph Observability
+        Prom[Prometheus /metrics]
+        Graf[Grafana]
+        Loki[Loki logs]
+    end
+
+    C -->|HTTP| M
+    S -->|SQLAlchemy| DB
+    M -.->|scrape| Prom
+    Prom --> Graf
+    App -.->|JSON logs| Loki
 ```
 
 **App:** FastAPI with JWT auth, task/note CRUD, health probes, Prometheus metrics, structured JSON logging.

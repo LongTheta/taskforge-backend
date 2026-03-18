@@ -7,7 +7,7 @@
 
 **TaskForge** is a task and notes management platform — users can register, log in, create tasks with status/priority, and organize notes. This repo is the backend API for TaskForge.
 
-A production-style FastAPI service with JWT auth, designed as a reference for platform engineering, DevSecOps, observability, and GitOps demos.
+A production-style FastAPI service with JWT auth, designed as a reference for platform engineering, DevSecOps, observability, and GitOps demos. Security and deployment practices have been validated by Cursor skills (Security Evaluator, Tool Evaluator, Zero Trust GitOps, DoD Zero Trust Architect). See [Skill-Driven Evaluations](#skill-driven-evaluations) below for outcomes and benefits.
 
 ---
 
@@ -52,6 +52,8 @@ A production-style FastAPI service with JWT auth, designed as a reference for pl
 | Audit logging (auth, task, note actions) | ✅ |
 | Refresh tokens | ✅ |
 | Basic RBAC (user, admin roles) | ✅ |
+| MFA (TOTP for admin) | ✅ |
+| Image signing (cosign keyless) | ✅ |
 
 ---
 
@@ -235,14 +237,14 @@ Tests use SQLite. `conftest.py` sets `DATABASE_URL`, `SECRET_KEY`, `APP_ENV`.
 
 - **Passwords:** bcrypt hashing, min 8 chars on registration.
 - **JWT:** HS256, configurable expiry. Set `SECRET_KEY` via env in production.
-- **Secrets:** Never commit `.env`. In production, startup fails if `SECRET_KEY` is a known insecure value.
+- **Secrets:** Never commit `.env`. In production, startup fails if `SECRET_KEY` is a known insecure value. Prod overlay uses External Secrets Operator (no secrets in Git).
 - **API:** No stack traces to clients. Task/note access is user-scoped.
 - **CI:** Bandit (static analysis), pip-audit (dependency vulnerabilities).
-- **Supply chain:** Actions pinned by SHA; SBOM generated; Docker image tagged by commit SHA; build provenance attestation for SBOM and build-metadata artifacts.
+- **Supply chain:** Actions pinned by SHA; SBOM generated; Docker image tagged by commit SHA; build provenance attestation; **cosign keyless image signing** on push to ghcr.io.
 
 ### Security Enhancements
 
-These controls address production-readiness gaps identified in security evaluations:
+These controls were identified and implemented via **Security Evaluator** and **Tool Evaluator** skills. They address production-readiness gaps and support regulated environments:
 
 | Control | Purpose |
 |---------|---------|
@@ -250,8 +252,29 @@ These controls address production-readiness gaps identified in security evaluati
 | **Audit logging** | Tracks security-relevant actions (login success/failure, registration, task/note CRUD) with `event_type: audit` in structured logs. Includes user_id, action, resource_id, request_id. No passwords or tokens logged. |
 | **Refresh tokens** | Long-lived JWT for token refresh. Use `POST /api/v1/auth/refresh` with `{"refresh_token": "..."}` to get new access and refresh tokens. |
 | **RBAC / roles** | User model has `role` (default: `user`). Admin-only routes use `require_role("admin")`. Example: `GET /api/v1/admin/stats`. Create admin via DB: `UPDATE users SET role='admin' WHERE email='...'`. |
+| **MFA (TOTP)** | Admin users can enable TOTP via `POST /api/v1/auth/mfa/setup`, `verify`, `verify-mfa`. See `docs/MFA-DESIGN.md`. |
+| **External Secrets** | Prod overlay uses External Secrets Operator; no placeholder secrets in prod Git. See `deploy/external-secrets/`. |
+| **NetworkPolicy** | Base + prod patch restrict ingress to ingress-nginx namespace; egress to DNS and PostgreSQL. Micro-segmentation for workload isolation. |
+| **Image signing** | Cosign keyless signing in CI `push-and-sign` job. Images pushed to ghcr.io are signed for supply chain integrity. |
+| **N8N webhook** | Optional notifications for `login_failure`, `mfa_enabled`, `user_registered`. See `docs/N8N-NOTIFICATIONS.md`. |
 
-**Known limitations:** MFA not implemented (design in `docs/MFA-DESIGN.md`). Container image signing deferred. See Roadmap.
+**Known limitations:** DB encryption at rest is deployment-dependent. N8N webhook has no auth (fire-and-forget).
+
+### Skill-Driven Evaluations
+
+This repository has been evaluated by six Cursor skills. Outcomes inform the security and deployment practices in place.
+
+| Skill | Outcome | Benefit |
+|-------|---------|---------|
+| **Security Evaluator** | Low risk | MFA, External Secrets, NetworkPolicy, image signing implemented. Production-suitable for non-regulated and regulated environments. |
+| **Tool Evaluator** | Strong fit | Reference backend validated for platform engineering, DevSecOps, GitOps demos. Production-ready with controls. |
+| **DevSecOps Policy Enforcement** | PASS | No plaintext secrets, SBOM, pinned deps, artifact traceability, manual promotion gate. |
+| **Zero Trust GitOps Enforcement** | PASS | Prod uses External Secrets, manual sync, NetworkPolicy, cosign signing. No High violations. |
+| **DoD Zero Trust Architect** | 7.4/10 | Target ZT baseline met. User (MFA), Application (ESO, NetworkPolicy), Network (micro-segmentation), Automation (cosign, manual gate), Visibility (audit, metrics). |
+
+**How skills were applied:** Security Evaluator and Tool Evaluator identified gaps (rate limiting, audit logging, MFA, External Secrets, NetworkPolicy, image signing). Each control was implemented and re-validated. Zero Trust GitOps and DoD Zero Trust Architect confirmed deployment practices (no secrets in prod Git, manual prod sync, NetworkPolicy, cosign). DevSecOps Policy Enforcement verified CI/CD and GitOps artifacts against default rules.
+
+**Benefits:** Production-ready controls out of the box — External Secrets in prod (no secrets in Git), NetworkPolicy micro-segmentation, cosign image signing, manual sync for production. Suitable for regulated environments (NIST 800-53, FedRAMP) with documented controls. Full assessments in [`SKILL_EVALUATIONS.md`](SKILL_EVALUATIONS.md).
 
 ---
 
@@ -277,11 +300,13 @@ These controls address production-readiness gaps identified in security evaluati
 
 ## 11. GitOps Readiness
 
+Deployment manifests have been validated by Zero Trust GitOps and DevSecOps Policy Enforcement skills. Prod overlay uses External Secrets (no secrets in Git), NetworkPolicy with ingress restriction, and manual ArgoCD sync. See [`deploy/README.md`](deploy/README.md) for validation highlights.
+
 ### Kustomize Structure
 
 ```
 deploy/kustomize/
-├── base/           # Deployment, Service, ConfigMap, Secret, NetworkPolicy
+├── base/           # Deployment, Service, ConfigMap, NetworkPolicy (no secret)
 └── overlays/
     ├── dev/        # kustomization.yaml, patch.yaml (environment=dev)
     └── prod/       # kustomization.yaml, patch.yaml (environment=prod)
@@ -327,9 +352,10 @@ GitHub Actions runs on push/PR to `main`:
 | **security** | Bandit, pip-audit |
 | **sbom** | CycloneDX SBOM (JSON); uploaded as artifact |
 | **docker** | Build prod image; tag with commit SHA; build metadata artifact |
+| **push-and-sign** | Build, push to ghcr.io, cosign keyless sign (main branch) |
 | **promote** | Manual gate (runs on push to main or workflow_dispatch); requires `production` environment approval |
 
-**Supply chain:** All actions pinned by full 40-char SHA. Docker base image pinned. SBOM generated for Python deps. Build provenance attestation for SBOM and build-metadata (SLSA-style, signed via Sigstore; verify with `gh attestation verify`).
+**Supply chain:** All actions pinned by full 40-char SHA. Docker base image pinned. SBOM generated for Python deps. Build provenance attestation for SBOM and build-metadata (SLSA-style, signed via Sigstore; verify with `gh attestation verify`). **Cosign keyless signing** in `push-and-sign` job for images pushed to ghcr.io.
 
 **Promotion gate:** Configure `production` environment in repo Settings → Environments with required reviewers. The promote job blocks until approved.
 
@@ -343,6 +369,9 @@ GitHub Actions runs on push/PR to `main`:
 |--------|----------|-------------|
 | POST | `/api/v1/auth/register` | Register user |
 | POST | `/api/v1/auth/login` | Login, get JWT + refresh token |
+| POST | `/api/v1/auth/mfa/setup` | Admin: start MFA setup |
+| POST | `/api/v1/auth/mfa/verify` | Admin: verify TOTP and enable MFA |
+| POST | `/api/v1/auth/mfa/verify-mfa` | Admin: login with MFA code |
 | POST | `/api/v1/auth/refresh` | Exchange refresh token for new tokens |
 | GET | `/api/v1/users/me` | Current user (auth) |
 | GET | `/api/v1/admin/stats` | Admin-only: user/task/note counts |
@@ -381,19 +410,23 @@ GitHub Actions runs on push/PR to `main`:
 
 ## 15. Roadmap
 
+**Done (skill-driven):**
+
+- [x] MFA for admin (TOTP; `docs/MFA-DESIGN.md`)
+- [x] Image publish to ghcr.io
+- [x] Cosign keyless image signing
+- [x] External Secrets in prod overlay
+- [x] NetworkPolicy with ingress restriction
+
 **Planned next:**
 
-- [ ] MFA for admin (design in `docs/MFA-DESIGN.md`)
 - [ ] Audit logging retention / export
-- [ ] Image publish to registry (ghcr.io, ECR)
 - [ ] ArgoCD Image Updater or CI-driven overlay updates
 
 **Later:**
 
 - [ ] OpenTelemetry tracing
 - [ ] CodeQL, Trivy container scanning
-- [ ] Container image attestation (requires registry push)
-- [ ] cosign/signing for critical artifacts (optional hardening)
 - [ ] Helm chart (if Kustomize complexity grows)
 
 ---
